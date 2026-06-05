@@ -79,14 +79,14 @@ export default function StrategyInput({
           spellCheck="false"
         />
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-xs text-text-3 min-w-0 truncate">
+        <div className="mt-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-xs text-text-3 leading-relaxed sm:min-w-0 sm:truncate">
             {disabledReason ? disabledReason : <>Press <span className="font-mono text-text-2">{kbd}</span> to run</>}
           </p>
           <button
             onClick={onRun}
             disabled={!canRun || loading}
-            className="btn btn-primary group min-w-[160px]"
+            className="btn btn-primary group min-w-[160px] self-stretch sm:self-auto"
             aria-busy={loading}
           >
             <span className="flex items-center gap-2">
@@ -101,17 +101,20 @@ export default function StrategyInput({
         </div>
       </section>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {exampleGroups.map((group) => (
           <div key={group.label}>
-            <div className="micro-label mb-2 px-1">{group.label}</div>
-            <div className="scroll-row flex gap-2 pb-1 -mx-1 px-1">
+            <div className="flex items-baseline gap-3 mb-2 px-1">
+              <span className="micro-label">{group.label}</span>
+              <span className="text-xs text-text-3">{group.items.length} ideas</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {group.items.map((ex) => (
                 <button
                   key={ex}
                   type="button"
                   onClick={() => pickExample(ex)}
-                  className="chip whitespace-nowrap shrink-0 max-w-[420px] truncate"
+                  className="chip whitespace-normal text-left w-full text-sm leading-snug !rounded-lg px-3.5 py-2.5"
                   title={ex}
                 >
                   {ex}
