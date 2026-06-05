@@ -55,7 +55,7 @@ export default function TradeLog({ trades }: TradeLogProps) {
       </button>
 
       {open && (
-        <div className="border-t border-border overflow-auto max-h-[480px]">
+        <div className="border-t border-border overflow-auto max-h-[480px] scroll-row">
           {trades.length === 0 ? (
             <div className="px-5 py-8 text-sm text-text-3 text-center">
               No trades were executed. The entry rule never fired.
@@ -64,14 +64,14 @@ export default function TradeLog({ trades }: TradeLogProps) {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-surface-1 z-10">
                 <tr className="border-b border-border">
-                  <th className="text-left px-4 py-2.5 micro-label">#</th>
-                  <th className="text-left px-4 py-2.5 micro-label">Side</th>
-                  <th className="text-left px-4 py-2.5 micro-label">Entry</th>
-                  <th className="text-right px-4 py-2.5 micro-label">Entry px</th>
-                  <th className="text-left px-4 py-2.5 micro-label">Exit</th>
-                  <th className="text-right px-4 py-2.5 micro-label">Exit px</th>
-                  <th className="text-right px-4 py-2.5 micro-label">P&amp;L</th>
-                  <th className="text-left px-4 py-2.5 micro-label">Why</th>
+                  <th className="text-left px-3 sm:px-4 py-2.5 micro-label">#</th>
+                  <th className="text-left px-3 sm:px-4 py-2.5 micro-label">Side</th>
+                  <th className="text-left px-3 sm:px-4 py-2.5 micro-label">Entry</th>
+                  <th className="text-right px-3 sm:px-4 py-2.5 micro-label hidden sm:table-cell">Entry px</th>
+                  <th className="text-left px-3 sm:px-4 py-2.5 micro-label">Exit</th>
+                  <th className="text-right px-3 sm:px-4 py-2.5 micro-label hidden sm:table-cell">Exit px</th>
+                  <th className="text-right px-3 sm:px-4 py-2.5 micro-label">P&amp;L</th>
+                  <th className="text-left px-3 sm:px-4 py-2.5 micro-label hidden md:table-cell">Why</th>
                 </tr>
               </thead>
               <tbody className="font-mono tabular-nums">
@@ -79,25 +79,25 @@ export default function TradeLog({ trades }: TradeLogProps) {
                   const pos = t.pnlPct >= 0;
                   return (
                     <tr key={i} className="border-b border-border last:border-b-0 hover:bg-surface-2 transition-colors duration-120 ease-out">
-                      <td className="px-4 py-2.5 text-text-3">{i + 1}</td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-3 sm:px-4 py-2.5 text-text-3">{i + 1}</td>
+                      <td className="px-3 sm:px-4 py-2.5">
                         <span className="text-xs uppercase tracking-wider text-text-2">{t.side}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-text-1">{fmtDate(t.entryTime)}</td>
-                      <td className="px-4 py-2.5 text-right text-text-1">{fmtNum(t.entryPrice, 2)}</td>
-                      <td className="px-4 py-2.5 text-text-1">{fmtDate(t.exitTime)}</td>
-                      <td className="px-4 py-2.5 text-right text-text-1">{fmtNum(t.exitPrice, 2)}</td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-3 sm:px-4 py-2.5 text-text-1 whitespace-nowrap">{fmtDate(t.entryTime)}</td>
+                      <td className="px-3 sm:px-4 py-2.5 text-right text-text-1 hidden sm:table-cell">{fmtNum(t.entryPrice, 2)}</td>
+                      <td className="px-3 sm:px-4 py-2.5 text-text-1 whitespace-nowrap">{fmtDate(t.exitTime)}</td>
+                      <td className="px-3 sm:px-4 py-2.5 text-right text-text-1 hidden sm:table-cell">{fmtNum(t.exitPrice, 2)}</td>
+                      <td className="px-3 sm:px-4 py-2.5 text-right">
                         <span
                           className={cn(
-                            "inline-block rounded px-2 py-0.5 text-xs",
+                            "inline-block rounded px-2 py-0.5 text-xs whitespace-nowrap",
                             pos ? "bg-accent-soft text-accent" : "bg-danger-soft text-warning",
                           )}
                         >
                           {fmtPct(t.pnlPct)}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-text-3 text-xs">{REASON_LABEL[t.reason]}</td>
+                      <td className="px-3 sm:px-4 py-2.5 text-text-3 text-xs hidden md:table-cell">{REASON_LABEL[t.reason]}</td>
                     </tr>
                   );
                 })}

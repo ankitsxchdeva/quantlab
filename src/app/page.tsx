@@ -308,16 +308,18 @@ export default function Page() {
           </section>
         )}
 
-        <StrategyInput
-          value={prompt}
-          onChange={setPrompt}
-          onRun={run}
-          exampleGroups={EXAMPLE_GROUPS}
-          loading={loading}
-          canRun={canRun}
-          disabledReason={disabledReason}
-          showExamples={!result && !loading}
-        />
+        {(!result || loading) && (
+          <StrategyInput
+            value={prompt}
+            onChange={setPrompt}
+            onRun={run}
+            exampleGroups={EXAMPLE_GROUPS}
+            loading={loading}
+            canRun={canRun}
+            disabledReason={disabledReason}
+            showExamples={!result && !loading}
+          />
+        )}
 
         <PhaseIndicator active={loading} />
 
@@ -342,10 +344,10 @@ export default function Page() {
         )}
 
         {result && strategy && (
-          <div className="space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-3 panel px-4 py-3 animate-fade-in" style={{ animationDelay: "0ms" }}>
               <MarketBadge market={result.market} />
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {result.warnings.length > 0 && (
                   <span className="text-xs text-warning">
                     {result.warnings.length} warning{result.warnings.length === 1 ? "" : "s"}
@@ -353,19 +355,25 @@ export default function Page() {
                 )}
                 <button
                   onClick={() => { setResult(null); setStrategy(null); setError(null); }}
-                  className="btn btn-ghost text-xs h-7"
+                  className="btn btn-secondary h-8 text-xs"
                 >
-                  Back to start
+                  Try another idea
                 </button>
               </div>
             </div>
 
-            <ResultsHeadline result={result} strategy={strategy} />
+            <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
+              <ResultsHeadline result={result} strategy={strategy} />
+            </div>
 
             {result.warnings.length > 0 && (
               <div
-                className="px-4 py-3 rounded-lg border text-sm"
-                style={{ borderColor: "color-mix(in oklch, var(--warning) 40%, transparent)", backgroundColor: "color-mix(in oklch, var(--warning) 8%, transparent)" }}
+                className="px-4 py-3 rounded-lg border text-sm animate-fade-in"
+                style={{
+                  animationDelay: "120ms",
+                  borderColor: "color-mix(in oklch, var(--warning) 40%, transparent)",
+                  backgroundColor: "color-mix(in oklch, var(--warning) 8%, transparent)",
+                }}
               >
                 <div className="micro-label mb-1.5">Caveats</div>
                 <ul className="list-disc list-inside space-y-0.5 text-text-2">
@@ -376,11 +384,21 @@ export default function Page() {
               </div>
             )}
 
-            <PriceChart bars={result.bars} trades={result.trades} symbol={result.market.label} timeframe={strategy.timeframe} />
-            <MetricsCards metrics={result.metrics} />
-            <EquityChart equity={result.equity} benchmark={result.benchmark} />
-            <StrategyView strategy={strategy} />
-            <TradeLog trades={result.trades} />
+            <div className="animate-fade-in" style={{ animationDelay: "140ms" }}>
+              <PriceChart bars={result.bars} trades={result.trades} symbol={result.market.label} timeframe={strategy.timeframe} />
+            </div>
+            <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+              <MetricsCards metrics={result.metrics} />
+            </div>
+            <div className="animate-fade-in" style={{ animationDelay: "260ms" }}>
+              <EquityChart equity={result.equity} benchmark={result.benchmark} />
+            </div>
+            <div className="animate-fade-in" style={{ animationDelay: "320ms" }}>
+              <StrategyView strategy={strategy} />
+            </div>
+            <div className="animate-fade-in" style={{ animationDelay: "380ms" }}>
+              <TradeLog trades={result.trades} />
+            </div>
           </div>
         )}
       </main>

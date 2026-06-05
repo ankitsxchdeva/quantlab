@@ -131,11 +131,20 @@ export default function PriceChart({ bars, trades, symbol, timeframe, height = 3
           </span>
         </div>
         <div className="flex items-center gap-3 text-xs text-text-3">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-accent" aria-hidden="true" /> Long
+          <span className="flex items-center gap-1.5" title="Trade entry">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden="true">
+              <path d="M12 4 L20 20 L4 20 Z" />
+            </svg> Entry
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-warning" aria-hidden="true" /> Loss
+          <span className="flex items-center gap-1.5" title="Profitable exit">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden="true">
+              <path d="M12 20 L20 4 L4 4 Z" />
+            </svg> Win
+          </span>
+          <span className="flex items-center gap-1.5" title="Losing exit">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-warning" aria-hidden="true">
+              <path d="M12 20 L20 4 L4 4 Z" />
+            </svg> Loss
           </span>
         </div>
       </div>
