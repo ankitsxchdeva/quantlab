@@ -11,11 +11,11 @@ interface PriceChartProps {
   height?: number;
 }
 
-const ACCENT = "oklch(0.78 0.16 145)";
-const WARNING = "oklch(0.80 0.13 75)";
-const TEXT_2 = "oklch(0.72 0.008 80)";
-const BORDER = "oklch(0.30 0.006 80)";
-const SURFACE_1 = "oklch(0.20 0.006 80)";
+const ACCENT = "#3ec27a";
+const WARNING = "#d9a85a";
+const TEXT_2 = "#a9a298";
+const BORDER = "#36312a";
+const SURFACE_1 = "#221f1a";
 
 export default function PriceChart({ bars, trades, symbol, timeframe, height = 360 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);

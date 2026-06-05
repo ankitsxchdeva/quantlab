@@ -9,11 +9,13 @@ interface EquityChartProps {
   height?: number;
 }
 
-const ACCENT = "oklch(0.78 0.16 145)";
-const NEUTRAL_LINE = "oklch(0.55 0.008 80)";
-const TEXT_2 = "oklch(0.72 0.008 80)";
-const BORDER = "oklch(0.30 0.006 80)";
-const SURFACE_1 = "oklch(0.20 0.006 80)";
+const ACCENT = "#3ec27a";
+const ACCENT_FILL_TOP = "rgba(62, 194, 122, 0.32)";
+const ACCENT_FILL_BOTTOM = "rgba(62, 194, 122, 0.02)";
+const NEUTRAL_LINE = "#857d72";
+const TEXT_2 = "#a9a298";
+const BORDER = "#36312a";
+const SURFACE_1 = "#221f1a";
 
 export default function EquityChart({ equity, benchmark, height = 280 }: EquityChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -66,8 +68,8 @@ export default function EquityChart({ equity, benchmark, height = 280 }: EquityC
 
       const series = chart.addAreaSeries({
         lineColor: ACCENT,
-        topColor: "color-mix(in oklch, oklch(0.78 0.16 145) 35%, transparent)",
-        bottomColor: "color-mix(in oklch, oklch(0.78 0.16 145) 2%, transparent)",
+        topColor: ACCENT_FILL_TOP,
+        bottomColor: ACCENT_FILL_BOTTOM,
         lineWidth: 2,
         priceLineVisible: false,
       });
