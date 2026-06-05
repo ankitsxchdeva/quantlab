@@ -13,6 +13,7 @@ import MarketBadge from "@/components/MarketBadge";
 import PhaseIndicator from "@/components/PhaseIndicator";
 import type { BacktestResult } from "@/lib/types";
 import type { Strategy } from "@/lib/strategy/schema";
+import { getExampleResult } from "@/lib/demo/example";
 
 const SETTINGS_KEY = "algotrading.llm.settings.v1";
 
@@ -126,8 +127,17 @@ function CogIcon() {
   );
 }
 
-function StepDivider() {
-  return <span className="text-text-3 mx-1.5" aria-hidden="true">→</span>;
+function Caret() {
+  return <span className="text-text-3 hidden sm:inline" aria-hidden="true">→</span>;
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
 }
 
 export default function Page() {
@@ -165,6 +175,16 @@ export default function Page() {
     if (prompt.trim().length === 0) return "Type or pick an idea to begin.";
     return undefined;
   }, [hydrated, hasKey, prompt]);
+
+  function showExample() {
+    const ex = getExampleResult();
+    setError(null);
+    setStrategy(ex.strategy);
+    setResult(ex.result);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
 
   async function run() {
     if (!canRun) return;
@@ -250,28 +270,54 @@ export default function Page() {
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-7 py-6 sm:py-10 space-y-6">
         {showHero && (
           <section className="relative pt-2 pb-4 sm:pt-6 sm:pb-8">
-            <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-center">
+            <div className="grid lg:grid-cols-[1fr_280px] gap-6 lg:gap-10 items-end">
               <div>
-                <div className="micro-label mb-4">Backtest any market theory</div>
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-text-1 leading-[1.05]">
-                  Test the wildest trading idea you have. In plain English.
+                  <span className="block">Test the wildest trading idea you have.</span>
+                  <span className="block text-text-2 mt-1">In plain English.</span>
                 </h1>
-                <p className="mt-4 text-base sm:text-lg text-text-2 max-w-prose leading-relaxed">
-                  Your hypothesis. Real market data. Honest math. Works on stocks, ETFs, crypto, and Polymarket prediction markets.
+                <p className="mt-5 text-base sm:text-lg text-text-2 max-w-prose leading-relaxed">
+                  Your hypothesis. Real market data. Honest math.
+                </p>
+                <p className="mt-1 text-sm text-text-3 max-w-prose">
+                  Works on stocks, ETFs, crypto, and Polymarket prediction markets.
                 </p>
 
-                <div className="mt-6 flex items-center gap-1 text-xs text-text-3 font-mono">
-                  <span>Describe</span>
-                  <StepDivider />
-                  <span>Compile</span>
-                  <StepDivider />
-                  <span>Fetch real history</span>
-                  <StepDivider />
-                  <span>Simulate every trade</span>
+                <div className="mt-6 flex items-center gap-3">
+                  <button
+                    onClick={showExample}
+                    className="btn btn-secondary text-sm h-9"
+                  >
+                    <span>See an example backtest</span>
+                    <ArrowIcon />
+                  </button>
+                  <span className="text-xs text-text-3 hidden sm:inline">No key required.</span>
                 </div>
+
+                <ol className="mt-8 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 text-xs text-text-3 font-mono">
+                  <li className="flex items-baseline gap-2">
+                    <span className="text-text-2">1.</span>
+                    <span>Describe an idea</span>
+                  </li>
+                  <Caret />
+                  <li className="flex items-baseline gap-2">
+                    <span className="text-text-2">2.</span>
+                    <span>Compile to rules</span>
+                  </li>
+                  <Caret />
+                  <li className="flex items-baseline gap-2">
+                    <span className="text-text-2">3.</span>
+                    <span>Pull real history</span>
+                  </li>
+                  <Caret />
+                  <li className="flex items-baseline gap-2">
+                    <span className="text-text-2">4.</span>
+                    <span>Simulate every trade</span>
+                  </li>
+                </ol>
               </div>
 
-              <div className="hidden lg:block h-[150px] opacity-90">
+              <div className="hidden lg:block h-[112px] opacity-80">
                 <MiniEquitySVG />
               </div>
             </div>
