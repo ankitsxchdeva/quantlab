@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { BacktestMetrics } from "@/lib/types";
 import { cn, fmtNum, fmtPct } from "@/lib/utils";
 
@@ -74,6 +74,27 @@ function MetricCell({ cell, openId, setOpenId, id }: { cell: Cell; openId: strin
 
 export default function MetricsCards({ metrics }: MetricsCardsProps) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!openId) return;
+    function onDocClick(e: MouseEvent) {
+      if (!sectionRef.current) return;
+      if (e.target instanceof Node && !sectionRef.current.contains(e.target)) {
+        setOpenId(null);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenId(null);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openId]);
+
   const cells: Cell[] = [
     {
       label: "Total return",
@@ -120,7 +141,7 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
   ];
 
   return (
-    <section className="panel overflow-visible">
+    <section ref={sectionRef} className="panel overflow-visible">
       <div className="grid grid-cols-2 lg:grid-cols-7">
         {cells.map((c, i) => {
           const lastOnSmall = i === cells.length - 1;

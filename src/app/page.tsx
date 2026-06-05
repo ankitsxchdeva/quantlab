@@ -147,6 +147,7 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
+  const [computeMs, setComputeMs] = useState<number | null>(null);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -177,6 +178,7 @@ export default function Page() {
     setError(null);
     setStrategy(ex.strategy);
     setResult(ex.result);
+    setComputeMs(ex.computeMs);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -188,6 +190,8 @@ export default function Page() {
     setError(null);
     setStrategy(null);
     setResult(null);
+    setComputeMs(null);
+    const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
     try {
       const res = await fetch("/api/run", {
         method: "POST",
@@ -208,6 +212,8 @@ export default function Page() {
       }
       setStrategy(data.strategy);
       setResult(data.result);
+      const endTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+      setComputeMs(endTime - startTime);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -240,12 +246,30 @@ export default function Page() {
                 role="dialog"
                 aria-label="How it works"
                 onClick={() => setHowOpen(false)}
-                className="absolute right-0 top-10 z-40 panel-raised px-4 py-3 max-w-sm w-[min(22rem,90vw)] animate-fade-in"
+                className="absolute right-0 top-10 z-40 panel-raised px-4 py-4 w-[min(26rem,92vw)] animate-fade-in shadow-lg"
               >
-                <p className="text-sm text-text-1 leading-relaxed">
-                  You type a trading idea. We send it to your chosen LLM (with your key) to compile into structured rules, fetch real price history, simulate every trade, and show you the result.
+                <div className="micro-label mb-2">How it works</div>
+                <ol className="space-y-2.5 text-sm text-text-2">
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">1.</span>
+                    <span><span className="text-text-1">Describe an idea</span> in plain English. We sent it to your LLM provider with your API key.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">2.</span>
+                    <span>The LLM emits <span className="text-text-1">structured rules</span> (indicators, entry conditions, exits, risk). Not code, just data.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">3.</span>
+                    <span>We pull real <span className="text-text-1">OHLCV history</span> from Yahoo Finance or Polymarket.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">4.</span>
+                    <span>Our engine <span className="text-text-1">simulates every bar</span>, tracks every trade, computes Sharpe, drawdown, vs buy-and-hold.</span>
+                  </li>
+                </ol>
+                <p className="mt-4 pt-3 border-t border-border text-xs text-text-3 leading-relaxed">
+                  Your key stays in your browser. Strategies are data, not executable code. Click anywhere to close.
                 </p>
-                <p className="mt-2 text-xs text-text-3">Click anywhere to close.</p>
               </div>
             )}
             <button
@@ -353,8 +377,13 @@ export default function Page() {
                     {result.warnings.length} warning{result.warnings.length === 1 ? "" : "s"}
                   </span>
                 )}
+                {computeMs !== null && (
+                  <span className="text-xs text-text-3 font-mono tabular-nums" title="Total round-trip time including LLM compile, data fetch, and backtest simulation.">
+                    {computeMs < 1000 ? `${Math.round(computeMs)}ms` : `${(computeMs / 1000).toFixed(1)}s`}
+                  </span>
+                )}
                 <button
-                  onClick={() => { setResult(null); setStrategy(null); setError(null); }}
+                  onClick={() => { setResult(null); setStrategy(null); setError(null); setComputeMs(null); }}
                   className="btn btn-secondary h-8 text-xs"
                 >
                   Try another idea
@@ -403,10 +432,27 @@ export default function Page() {
         )}
       </main>
 
-      <footer className="max-w-6xl mx-auto w-full px-5 sm:px-7 py-8 mt-6 text-xs text-text-3 border-t border-border">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <span>Backtests model what would have happened, not what will. Use this to learn, not to invest.</span>
-          <span className="font-mono">quantlab</span>
+      <footer className="max-w-6xl mx-auto w-full px-5 sm:px-7 py-10 mt-8 text-xs text-text-3 border-t border-border">
+        <div className="grid sm:grid-cols-[1fr_auto] gap-y-5 gap-x-8 items-start">
+          <div className="space-y-3 max-w-prose">
+            <p className="text-text-2 leading-relaxed">
+              Backtests model what would have happened, not what will. Use this to learn, not to invest. Indicators and metrics are computed from the rules you describe and the price history we fetch. Nothing here is investment advice.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
+                Your API key never leaves your browser
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-info" aria-hidden="true" />
+                No accounts, no tracking, no upsells
+              </span>
+            </div>
+          </div>
+          <div className="flex sm:flex-col gap-4 sm:gap-1 sm:items-end">
+            <span className="font-mono text-text-2">quantlab</span>
+            <span className="text-text-3">v0.1</span>
+          </div>
         </div>
       </footer>
 

@@ -77,12 +77,14 @@ const DEMO_MARKET: MarketResolution = {
   label: "Synthetic blue chip (demo)",
 };
 
-let cached: { result: BacktestResult; strategy: Strategy } | null = null;
+let cached: { result: BacktestResult; strategy: Strategy; computeMs: number } | null = null;
 
-export function getExampleResult(): { result: BacktestResult; strategy: Strategy } {
+export function getExampleResult(): { result: BacktestResult; strategy: Strategy; computeMs: number } {
   if (cached) return cached;
+  const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
   const bars = synthesizeBars("DEMO", 6 * 252);
   const result = runBacktest(DEMO_STRATEGY, bars, DEMO_MARKET);
-  cached = { result, strategy: DEMO_STRATEGY };
+  const t1 = typeof performance !== "undefined" ? performance.now() : Date.now();
+  cached = { result, strategy: DEMO_STRATEGY, computeMs: t1 - t0 };
   return cached;
 }
