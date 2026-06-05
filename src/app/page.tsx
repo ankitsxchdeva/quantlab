@@ -332,6 +332,7 @@ export default function Page() {
           loading={loading}
           canRun={canRun}
           disabledReason={disabledReason}
+          showExamples={!result && !loading}
         />
 
         <PhaseIndicator active={loading} />
@@ -360,11 +361,19 @@ export default function Page() {
           <div className="space-y-5 animate-fade-in">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <MarketBadge market={result.market} />
-              {result.warnings.length > 0 && (
-                <span className="text-xs text-warning">
-                  {result.warnings.length} warning{result.warnings.length === 1 ? "" : "s"}
-                </span>
-              )}
+              <div className="flex items-center gap-3">
+                {result.warnings.length > 0 && (
+                  <span className="text-xs text-warning">
+                    {result.warnings.length} warning{result.warnings.length === 1 ? "" : "s"}
+                  </span>
+                )}
+                <button
+                  onClick={() => { setResult(null); setStrategy(null); setError(null); }}
+                  className="btn btn-ghost text-xs h-7"
+                >
+                  Back to start
+                </button>
+              </div>
             </div>
 
             <ResultsHeadline result={result} strategy={strategy} />

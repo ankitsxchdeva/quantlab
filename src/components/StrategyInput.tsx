@@ -15,6 +15,7 @@ interface StrategyInputProps {
   loading: boolean;
   canRun: boolean;
   disabledReason?: string;
+  showExamples?: boolean;
 }
 
 function ArrowIcon() {
@@ -34,6 +35,7 @@ export default function StrategyInput({
   loading,
   canRun,
   disabledReason,
+  showExamples = true,
 }: StrategyInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -101,7 +103,7 @@ export default function StrategyInput({
         </div>
       </section>
 
-      <div className="space-y-5">
+      {showExamples && <div className="space-y-5">
         {exampleGroups.map((group) => (
           <div key={group.label}>
             <div className="flex items-baseline gap-3 mb-2 px-1">
@@ -123,7 +125,7 @@ export default function StrategyInput({
             </div>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
