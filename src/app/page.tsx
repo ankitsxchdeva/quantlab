@@ -127,10 +127,6 @@ function CogIcon() {
   );
 }
 
-function Caret() {
-  return <span className="text-text-3 hidden sm:inline" aria-hidden="true">→</span>;
-}
-
 function ArrowIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -294,26 +290,14 @@ export default function Page() {
                   <span className="text-xs text-text-3 hidden sm:inline">No key required.</span>
                 </div>
 
-                <ol className="mt-8 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 text-xs text-text-3 font-mono">
-                  <li className="flex items-baseline gap-2">
-                    <span className="text-text-2">1.</span>
-                    <span>Describe an idea</span>
-                  </li>
-                  <Caret />
-                  <li className="flex items-baseline gap-2">
-                    <span className="text-text-2">2.</span>
-                    <span>Compile to rules</span>
-                  </li>
-                  <Caret />
-                  <li className="flex items-baseline gap-2">
-                    <span className="text-text-2">3.</span>
-                    <span>Pull real history</span>
-                  </li>
-                  <Caret />
-                  <li className="flex items-baseline gap-2">
-                    <span className="text-text-2">4.</span>
-                    <span>Simulate every trade</span>
-                  </li>
+                <ol className="mt-8 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 text-xs text-text-3 font-mono">
+                  {["Describe an idea", "Compile to rules", "Pull real history", "Simulate every trade"].map((step, i, arr) => (
+                    <li key={step} className="flex items-baseline gap-2">
+                      <span className="text-text-2">{i + 1}.</span>
+                      <span>{step}</span>
+                      {i < arr.length - 1 && <span className="text-text-3 ml-2 hidden sm:inline" aria-hidden="true">→</span>}
+                    </li>
+                  ))}
                 </ol>
               </div>
 
