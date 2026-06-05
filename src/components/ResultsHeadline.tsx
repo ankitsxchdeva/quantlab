@@ -51,7 +51,7 @@ export default function ResultsHeadline({ result, strategy }: ResultsHeadlinePro
             tone: "win",
             sentence: (
               <>
-                That <span className="text-accent">beat buy-and-hold by {fmtPct(delta)}</span>.
+                That <span className="text-accent font-medium">beat buy-and-hold by {fmtPct(delta)}</span>.
               </>
             ),
           }
@@ -59,43 +59,50 @@ export default function ResultsHeadline({ result, strategy }: ResultsHeadlinePro
             tone: "loss",
             sentence: (
               <>
-                <span className="text-warning">Buy-and-hold would have made {fmtMoney(result.benchmark.finalEquity - final)} more</span> ({fmtPct(benchmarkReturn)} vs {fmtPct(strategyReturn)}).
+                <span className="text-warning font-medium">Buy-and-hold would have made {fmtMoney(result.benchmark.finalEquity - final)} more</span> ({fmtPct(benchmarkReturn)} vs {fmtPct(strategyReturn)}).
               </>
             ),
           };
 
-  const verb = strategyReturn >= 0 ? "Turned" : "Took";
   const finalEmphasisClass = cn(
-    "tabular text-text-1",
+    "tabular",
     verdict.tone === "win" && "text-accent",
     verdict.tone === "loss" && "text-warning",
+    verdict.tone === "even" && "text-text-1",
   );
 
   return (
     <section className="panel-raised relative overflow-hidden">
-      <div className="absolute inset-0 grid-lines opacity-[0.15] pointer-events-none" aria-hidden="true" />
-      <div className="relative px-6 py-7 sm:px-8 sm:py-9">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="absolute inset-0 grid-lines opacity-[0.18] pointer-events-none" aria-hidden="true" />
+      <div className="relative px-6 py-8 sm:px-10 sm:py-10">
+        <div className="flex items-center gap-2 mb-5">
           <span className="micro-label">Result</span>
           <span className="h-px w-8 bg-border" aria-hidden="true" />
-          <span className="micro-label">{strategy.name}</span>
+          <span className="micro-label truncate max-w-[40ch]" title={strategy.name}>{strategy.name}</span>
         </div>
 
-        <p className="text-2xl sm:text-3xl leading-tight tracking-tight text-text-2">
-          <span className="text-text-1">{verb}</span>{" "}
-          <span className="tabular text-text-1">{fmtMoney(initial)}</span>{" "}
-          <span className="text-text-1">into</span>{" "}
+        <p className="text-text-2 text-base sm:text-lg mb-3">Your strategy</p>
+
+        <p className="text-3xl sm:text-4xl lg:text-5xl leading-[1.1] tracking-tight text-text-2 font-medium">
+          <span className="tabular text-text-1">{fmtMoney(initial)}</span>
+          <span className="text-text-2"> → </span>
           <span className={finalEmphasisClass}>{fmtMoney(final)}</span>
-          <span className="text-text-2"> ({fmtPct(strategyReturn)}).</span>
         </p>
 
         <p className="mt-3 text-base sm:text-lg text-text-2 leading-relaxed">
+          <span className="tabular">{fmtPct(strategyReturn)}</span>{" "}
+          over <span className="tabular">{years.toFixed(1)}</span> years.
+          {" "}
           {verdict.sentence}
         </p>
 
-        <p className="mt-4 text-sm text-text-3">
-          {result.metrics.totalTrades.toLocaleString()} trade{result.metrics.totalTrades === 1 ? "" : "s"} {span}.
-        </p>
+        <div className="mt-5 pt-5 border-t border-border flex flex-wrap items-baseline gap-x-5 gap-y-1.5 text-sm text-text-3">
+          <span>
+            <span className="tabular text-text-2">{result.metrics.totalTrades.toLocaleString()}</span> trade{result.metrics.totalTrades === 1 ? "" : "s"}
+          </span>
+          <span className="text-border" aria-hidden="true">·</span>
+          <span>{span.replace(/^over [^ ]+ years? of /, "").replace(/^over [^ ]+ months? of /, "").replace(/^over \d+ days? of /, "")}</span>
+        </div>
       </div>
     </section>
   );
