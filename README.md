@@ -4,11 +4,11 @@
 
 ![quantlab landing](docs/screenshots/01-landing.png)
 
-- **Plain English is the interface.** "Buy AAPL when its 50-day average crosses above its 200-day, sell when it crosses back below" → a full backtest.
-- **Bring your own LLM key** (OpenAI / Anthropic / Google). Never persisted server-side — it lives only in your browser.
-- The LLM emits a **structured strategy DSL, not code** — no code generation, no `eval`.
+- **Plain English is the interface.** "Buy AAPL when its 50-day average crosses above its 200-day, sell when it crosses back below" turns into a full backtest.
+- **Bring your own LLM key** (OpenAI / Anthropic / Google). Never persisted server-side; it lives only in your browser.
+- The LLM emits a **structured strategy DSL, not code**. No code generation, no `eval`.
 - **Pure-TypeScript backtest engine** with free market data: Yahoo Finance (stocks, ETFs, crypto) and Polymarket (prediction markets).
-- **Benchmark or it didn't happen** — every result is compared to buy-and-hold.
+- **Benchmark or it didn't happen.** Every result is compared to buy-and-hold.
 
 ## Quick start
 
@@ -19,9 +19,9 @@ npm run dev
 
 Open **http://localhost:3000**, click **Settings** to paste your LLM API key, then describe a strategy. No key handy? Click **"See an example backtest"** to render a full result with demo data.
 
-There are no environment variables to set — the key is entered in the browser and sent per-request to your provider.
+There are no environment variables to set. The key is entered in the browser and sent per-request to your provider.
 
-📖 **Full walkthrough with screenshots: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)**
+Full walkthrough with screenshots: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 
 ## Scripts
 

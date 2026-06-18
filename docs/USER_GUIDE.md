@@ -1,4 +1,4 @@
-# quantlab — User Guide
+# quantlab User Guide
 
 A quant lab for normal people. Describe a trading idea in plain English; get a real backtest in seconds.
 
@@ -11,7 +11,7 @@ This guide walks through what the app does, how to run it locally, and how to us
 quantlab turns a sentence into a rigorous backtest:
 
 1. You **describe an idea** in plain English ("Buy AAPL when its 50-day average crosses above its 200-day, sell when it crosses back below").
-2. Your **LLM** (OpenAI, Anthropic, or Google — your key) compiles it into a structured strategy: indicators, entry/exit conditions, and risk rules. It emits **data, not code** — there is no `eval`, no code generation.
+2. Your **LLM** (OpenAI, Anthropic, or Google, with your key) compiles it into a structured strategy: indicators, entry/exit conditions, and risk rules. It emits **data, not code**. There is no `eval` and no code generation.
 3. quantlab pulls **real OHLCV history** from Yahoo Finance (stocks, ETFs, crypto) or Polymarket (prediction markets).
 4. A pure-TypeScript engine **simulates every bar**, tracks every trade, and computes Sharpe, drawdown, win rate, and a buy-and-hold benchmark.
 
@@ -32,11 +32,11 @@ Three principles shape it:
 - **Node.js 18.17+** (developed on Node 20/22; Node 26 also works).
 - **npm** (ships with Node).
 - An **LLM API key** from one provider:
-  - OpenAI — https://platform.openai.com/api-keys
-  - Anthropic — https://console.anthropic.com/settings/keys
-  - Google AI Studio — https://aistudio.google.com/app/apikey
+  - OpenAI: https://platform.openai.com/api-keys
+  - Anthropic: https://console.anthropic.com/settings/keys
+  - Google AI Studio: https://aistudio.google.com/app/apikey
 
-> You do **not** need a key to look around — the **"See an example backtest"** button renders a full result with demo data.
+> You do **not** need a key to look around. The **"See an example backtest"** button renders a full result with demo data.
 
 ### Steps
 
@@ -54,7 +54,7 @@ npm run dev
 
 Then open **http://localhost:3000**.
 
-The app is a standard [Next.js](https://nextjs.org) 14 project. There are **no environment variables to set** — the API key is entered in the browser at runtime and sent per-request to your chosen provider. Nothing is stored server-side.
+The app is a standard [Next.js](https://nextjs.org) 14 project. There are **no environment variables to set**. The API key is entered in the browser at runtime and sent per-request to your chosen provider. Nothing is stored server-side.
 
 ### Other commands
 
@@ -90,7 +90,7 @@ The **How it works** button explains the four-step pipeline without leaving the 
 
 ### 3. Describe an idea
 
-Type your strategy into the **Your idea** box, or click one of the example chips grouped by theme — **Classics**, **Memes**, **Prediction markets**, and **Counter-intuitive**. Then press **Run backtest**.
+Type your strategy into the **Your idea** box, or click one of the example chips grouped by theme: **Classics**, **Memes**, **Prediction markets**, and **Counter-intuitive**. Then press **Run backtest**.
 
 ![Strategy input](./screenshots/04-strategy-input.png)
 
@@ -107,19 +107,19 @@ A full result has six parts. Here is the whole page for one run:
 
 ![Full results](./screenshots/05-results-full.png)
 
-**Headline + price chart** — the bottom line first: what $10,000 became, over how long, and how that compares to buy-and-hold. The candlestick chart marks every entry and exit (green = win, amber = loss).
+**Headline and price chart.** The bottom line first: what $10,000 became, over how long, and how that compares to buy-and-hold. The candlestick chart marks every entry and exit (green = win, amber = loss).
 
 ![Results headline](./screenshots/06-results-headline.png)
 
-**Metrics + equity curve** — the standard quant scorecard (total return, CAGR, Sharpe, max drawdown, win rate, profit factor, time in market), then your equity curve plotted against the buy-and-hold benchmark.
+**Metrics and equity curve.** The standard quant scorecard (total return, CAGR, Sharpe, max drawdown, win rate, profit factor, time in market), then your equity curve plotted against the buy-and-hold benchmark.
 
 ![Metrics and equity curve](./screenshots/07-metrics-and-equity.png)
 
-**Compiled strategy** — exactly what the LLM understood, in plain English (toggle to raw JSON if you want it). This is your check that the machine read your idea the way you meant it: indicators, entry rule, exit rule, and position sizing.
+**Compiled strategy.** Exactly what the LLM understood, in plain English (toggle to raw JSON if you want it). This is your check that the machine read your idea the way you meant it: indicators, entry rule, exit rule, and position sizing.
 
 ![Compiled strategy view](./screenshots/08-strategy-view.png)
 
-**Trade log** — every simulated trade with entry/exit dates, prices, P&L, and the reason it closed (signal, stop, or end of data).
+**Trade log.** Every simulated trade with entry/exit dates, prices, P&L, and the reason it closed (signal, stop, or end of data).
 
 ![Trade log](./screenshots/09-trade-log.png)
 
@@ -135,25 +135,25 @@ The layout is responsive down to phone widths.
 
 ```
 Browser (your key in localStorage)
-   │  POST /api/run  { prompt, provider, apiKey, model }
-   ▼
+   |  POST /api/run  { prompt, provider, apiKey, model }
+   v
 src/app/api/run/route.ts        server route (key used in-memory only)
-   │
-   ├─ src/lib/llm/        compile plain English → strategy DSL (Vercel AI SDK)
-   ├─ src/lib/strategy/   Zod schema + indicator evaluation (SMA, RSI, ...)
-   ├─ src/lib/data/       fetch OHLCV from Yahoo Finance / Polymarket
-   └─ src/lib/backtest/   bar-by-bar simulation, metrics, buy-and-hold benchmark
-   │
-   ▼  { strategy, result }
+   |
+   |- src/lib/llm/        compile plain English to strategy DSL (Vercel AI SDK)
+   |- src/lib/strategy/   Zod schema + indicator evaluation (SMA, RSI, ...)
+   |- src/lib/data/       fetch OHLCV from Yahoo Finance / Polymarket
+   |- src/lib/backtest/   bar-by-bar simulation, metrics, buy-and-hold benchmark
+   |
+   v  { strategy, result }
 Browser renders charts, metrics, trade log
 ```
 
-- `src/lib/strategy/` — strategy DSL schema (Zod) + interpreter.
-- `src/lib/backtest/` — engine, metrics, trade simulator, benchmark.
-- `src/lib/data/` — market-data adapters (Yahoo Finance, Polymarket).
-- `src/lib/llm/` — multi-provider LLM adapter (Vercel AI SDK).
-- `src/app/api/` — server routes (compile strategy, run backtest).
-- `src/app/` + `src/components/` — the UI you see above.
+- `src/lib/strategy/` · strategy DSL schema (Zod) + interpreter.
+- `src/lib/backtest/` · engine, metrics, trade simulator, benchmark.
+- `src/lib/data/` · market-data adapters (Yahoo Finance, Polymarket).
+- `src/lib/llm/` · multi-provider LLM adapter (Vercel AI SDK).
+- `src/app/api/` · server routes (compile strategy, run backtest).
+- `src/app/` + `src/components/` · the UI you see above.
 
 ---
 
