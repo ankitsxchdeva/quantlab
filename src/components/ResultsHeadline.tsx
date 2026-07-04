@@ -31,6 +31,10 @@ export default function ResultsHeadline({ result, strategy }: ResultsHeadlinePro
   const benchmarkReturn = result.benchmark.totalReturnPct;
   const delta = strategyReturn - benchmarkReturn;
 
+  const grossReturn = result.metrics.grossTotalReturnPct;
+  const totalCosts = result.metrics.totalCosts;
+  const costsMoved = totalCosts > 0 && Math.abs(grossReturn - strategyReturn) >= 0.05;
+
   const bars = result.bars;
   const years = bars.length > 0 ? spanYears(bars[0].time, bars[bars.length - 1].time) : 0;
   const span = bars.length > 0 ? spanDescription(years, strategy.timeframe, bars.length) : "with no usable bars";
@@ -95,6 +99,14 @@ export default function ResultsHeadline({ result, strategy }: ResultsHeadlinePro
           {" "}
           {verdict.sentence}
         </p>
+
+        {costsMoved && (
+          <p className="mt-1.5 text-sm text-text-3">
+            Gross <span className="tabular">{fmtPct(grossReturn)}</span>, net{" "}
+            <span className="tabular">{fmtPct(strategyReturn)}</span> after{" "}
+            <span className="tabular">{fmtMoney(totalCosts)}</span> in costs.
+          </p>
+        )}
 
         <div className="mt-5 pt-5 border-t border-border flex flex-wrap items-baseline gap-x-5 gap-y-1.5 text-sm text-text-3">
           <span>

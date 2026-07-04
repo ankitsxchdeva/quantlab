@@ -1,5 +1,5 @@
 import type { Bar, DataRequest, Timeframe } from "@/lib/types";
-import type { FetchResult } from "./yahoo";
+import { fetchWithTimeout, parseDate, type FetchResult } from "./common";
 
 interface PolymarketMarket {
   id: string;
@@ -44,13 +44,7 @@ const BAR_MS: Record<Timeframe, number> = {
   "1mo": 30 * 24 * 60 * 60_000,
 };
 
-function parseDate(value: string | undefined | null): Date | null {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function parseClobTokenIds(raw: string | undefined): string[] {
+export function parseClobTokenIds(raw: string | undefined): string[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -66,7 +60,11 @@ async function findMarket(slugOrQuestion: string): Promise<PolymarketMarket> {
 
   const bySlug = new URL("https://gamma-api.polymarket.com/markets");
   bySlug.searchParams.set("slug", cleaned);
-  const slugRes = await fetch(bySlug.toString(), { cache: "no-store" });
+  const slugRes = await fetchWithTimeout(
+    bySlug.toString(),
+    { cache: "no-store" },
+    `Polymarket market lookup (Gamma) timed out for "${cleaned}"`,
+  );
   if (slugRes.ok) {
     const data = (await slugRes.json()) as PolymarketMarket[] | PolymarketMarket;
     const list = Array.isArray(data) ? data : [data];
@@ -80,7 +78,11 @@ async function findMarket(slugOrQuestion: string): Promise<PolymarketMarket> {
   search.searchParams.set("closed", "false");
   search.searchParams.set("order", "volume");
   search.searchParams.set("ascending", "false");
-  const searchRes = await fetch(search.toString(), { cache: "no-store" });
+  const searchRes = await fetchWithTimeout(
+    search.toString(),
+    { cache: "no-store" },
+    `Polymarket market search (Gamma) timed out for "${cleaned}"`,
+  );
   if (searchRes.ok) {
     const list = (await searchRes.json()) as PolymarketMarket[];
     const lower = cleaned.toLowerCase();
@@ -91,7 +93,7 @@ async function findMarket(slugOrQuestion: string): Promise<PolymarketMarket> {
   throw new Error(`Could not find Polymarket market for "${cleaned}"`);
 }
 
-function bucketByTimeframe(points: PolymarketPricePoint[], timeframe: Timeframe): Bar[] {
+export function bucketByTimeframe(points: PolymarketPricePoint[], timeframe: Timeframe): Bar[] {
   if (points.length === 0) return [];
   const step = BAR_MS[timeframe];
   const buckets = new Map<number, { open: number; high: number; low: number; close: number; openTime: number; closeTime: number }>();
@@ -150,7 +152,11 @@ export async function fetchBars(req: DataRequest): Promise<FetchResult> {
     url.searchParams.set("interval", "max");
   }
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
+  const res = await fetchWithTimeout(
+    url.toString(),
+    { cache: "no-store" },
+    `Polymarket price history (CLOB) timed out for "${market.question}"`,
+  );
   if (!res.ok) {
     throw new Error(`Polymarket prices-history failed (${res.status}) for "${market.question}"`);
   }

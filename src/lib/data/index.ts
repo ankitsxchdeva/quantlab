@@ -1,8 +1,9 @@
 import type { DataRequest } from "@/lib/types";
-import { fetchBars as fetchYahooBars, type FetchResult } from "./yahoo";
+import type { FetchResult } from "./common";
+import { fetchBars as fetchYahooBars } from "./yahoo";
 import { fetchBars as fetchPolymarketBars } from "./polymarket";
 
-export type { FetchResult } from "./yahoo";
+export type { FetchResult } from "./common";
 
 export async function fetchBars(req: DataRequest): Promise<FetchResult> {
   switch (req.source) {

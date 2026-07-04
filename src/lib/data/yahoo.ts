@@ -1,9 +1,5 @@
-import type { Bar, DataRequest, MarketResolution, Timeframe } from "@/lib/types";
-
-export interface FetchResult {
-  bars: Bar[];
-  market: MarketResolution;
-}
+import type { Bar, DataRequest, Timeframe } from "@/lib/types";
+import { fetchWithTimeout, parseDate, type FetchResult } from "./common";
 
 const TIMEFRAME_TO_INTERVAL: Record<Timeframe, string> = {
   "1m": "1m",
@@ -31,12 +27,6 @@ function defaultStart(timeframe: Timeframe, end: Date): Date {
     case "1mo":
       return new Date(endMs - 5 * 365 * DAY_MS);
   }
-}
-
-function parseDate(value: string | undefined | null): Date | null {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 interface YahooChartQuote {
@@ -79,14 +69,18 @@ export async function fetchBars(req: DataRequest): Promise<FetchResult> {
   url.searchParams.set("includePrePost", "false");
   url.searchParams.set("events", "div,splits");
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-      accept: "application/json",
+  const res = await fetchWithTimeout(
+    url.toString(),
+    {
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        accept: "application/json",
+      },
+      cache: "no-store",
     },
-    cache: "no-store",
-  });
+    `Yahoo Finance request timed out for ${req.symbol}`,
+  );
 
   if (!res.ok) {
     throw new Error(`Yahoo Finance request failed (${res.status}) for ${req.symbol}`);

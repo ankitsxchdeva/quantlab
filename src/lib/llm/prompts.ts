@@ -5,6 +5,7 @@ Rules:
 - Use only these indicators: SMA, EMA, RSI, MACD, BBANDS, ATR, STDDEV, HIGHEST, LOWEST.
 - Use only these condition operators: ">", ">=", "<", "<=", "==", "crosses_above", "crosses_below", "and", "or", "not".
 - Indicator references in conditions use { "ref": "<indicator id>" }. Raw price uses { "price": "close" } (or open/high/low/volume/hl2/hlc3/ohlc4). Constants use a plain number or { "const": <n> }.
+- Arithmetic combines operands: { "op": "+" | "-" | "*" | "/", "left": <operand>, "right": <operand> }. Example, "close is 5% below the 20-day SMA": { "op": "<", "left": { "price": "close" }, "right": { "op": "*", "left": { "ref": "sma_20" }, "right": 0.95 } }.
 - Every indicator referenced in entries/exits MUST appear in the "indicators" array with a stable, unique "id" (e.g. "sma_fast", "rsi_14").
 - "market" field: "stock" for any stock/ETF/index (default), "polymarket" for a prediction market.
 - For "polymarket": put the market slug or the question text in "asset" (e.g. "will-bitcoin-hit-200k-in-2026" or a verbatim quote of the question). The system will resolve it.
@@ -13,6 +14,9 @@ Rules:
 - If the user does not specify a ticker, default "asset" to "SPY" (for stocks) and note the assumption in "description".
 - If the user does not specify a timeframe, default to "1d".
 - Translate "stop loss X%" to risk.stopLossPct = X, "take profit X%" to risk.takeProfitPct = X.
+- Translate "exit/sell after N bars (or days on a 1d timeframe)" to risk.maxBarsInTrade = N.
+- risk.costs models trading friction: { "commissionBps": <n>, "slippageBps": <n>, "borrowRateAnnualPct": <n> }. Defaults (0 commission, 5 bps slippage per fill, 0% borrow) apply automatically; only emit "costs" when the user names fees, slippage, or a short borrow rate. 1 bps = 0.01%.
+- "startDate"/"endDate" are optional ISO dates ("YYYY-MM-DD") restricting the backtest window. Set them when the user names a period (e.g. "during 2022" -> startDate "2022-01-01", endDate "2022-12-31"); omit both otherwise.
 - Use "allowShort": true only when the user asks for shorting.
 - Pick a short, human-readable "name" summarizing the strategy.
 - If the user's idea is vague (e.g. "buy low sell high"), make a reasonable concrete interpretation and explain the choice in "description". Never refuse · always produce a runnable Strategy.

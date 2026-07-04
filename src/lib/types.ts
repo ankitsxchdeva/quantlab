@@ -40,13 +40,17 @@ export interface EquityPoint {
 export interface BacktestMetrics {
   initialEquity: number;
   finalEquity: number;
+  // All metrics are net of costs; grossTotalReturnPct adds totalCosts
+  // (slippage + commission + borrow, in dollars) back to final equity.
   totalReturnPct: number;
+  grossTotalReturnPct: number;
+  totalCosts: number;
   cagrPct: number;
   sharpe: number;
   sortino: number;
   maxDrawdownPct: number;
   winRatePct: number;
-  profitFactor: number;
+  profitFactor: number | null;
   totalTrades: number;
   avgTradePct: number;
   avgWinPct: number;

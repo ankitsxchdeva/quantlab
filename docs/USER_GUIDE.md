@@ -29,7 +29,7 @@ Three principles shape it:
 
 ### Prerequisites
 
-- **Node.js 18.17+** (developed on Node 20/22; Node 26 also works).
+- **Node.js 20+** (developed on Node 20/22).
 - **npm** (ships with Node).
 - An **LLM API key** from one provider:
   - OpenAI: https://platform.openai.com/api-keys
@@ -42,8 +42,8 @@ Three principles shape it:
 
 ```bash
 # 1. Clone and enter the repo
-git clone <your-repo-url> algotrading
-cd algotrading
+git clone https://github.com/ankitsxchdeva/quantlab quantlab
+cd quantlab
 
 # 2. Install dependencies
 npm install
@@ -66,6 +66,9 @@ The app is a standard [Next.js](https://nextjs.org) 14 project. There are **no e
 | `npm run test` | Run the Vitest suite (engine, indicators, compiler, data). |
 | `npm run typecheck` | TypeScript type-check with no emit. |
 | `npm run lint` | ESLint via `next lint`. |
+| `npm run coverage` | Test suite with V8 coverage report. |
+| `npm run bench` | Backtest engine benchmarks (Vitest bench mode). |
+| `npm run eval` | LLM compiler eval harness (needs an `EVAL_*` key; skips cleanly without one). |
 
 ---
 
@@ -111,7 +114,7 @@ A full result has six parts. Here is the whole page for one run:
 
 ![Results headline](./screenshots/06-results-headline.png)
 
-**Metrics and equity curve.** The standard quant scorecard (total return, CAGR, Sharpe, max drawdown, win rate, profit factor, time in market), then your equity curve plotted against the buy-and-hold benchmark.
+**Metrics and equity curve.** A 12-cell quant scorecard (total return, CAGR, Sharpe, Sortino, max drawdown, win rate, profit factor, time in market, average win/loss, best and worst trade), then your equity curve plotted against the buy-and-hold benchmark. When a run closes at least 5 trades, the equity chart also draws a Monte Carlo 5-95% fan behind the curve and a robustness card reports how the strategy held up on out-of-sample data. Results are net of trading costs (slippage, commission, borrow), and the headline shows the gross vs net split when costs mattered.
 
 ![Metrics and equity curve](./screenshots/07-metrics-and-equity.png)
 
@@ -144,7 +147,7 @@ src/app/api/run/route.ts        server route (key used in-memory only)
    |- src/lib/data/       fetch OHLCV from Yahoo Finance / Polymarket
    |- src/lib/backtest/   bar-by-bar simulation, metrics, buy-and-hold benchmark
    |
-   v  { strategy, result }
+   v  { strategy, result, robustness?, requestId, timings }
 Browser renders charts, metrics, trade log
 ```
 
@@ -165,6 +168,7 @@ Browser renders charts, metrics, trade log
 | **Run failed: model not found** | The custom model name isn't valid for that provider. Clear the Model field to use the default. |
 | **"Add your LLM API key in settings to start."** | No key set. Open Settings and paste one. |
 | **No data / unknown symbol** | The ticker isn't on Yahoo Finance, or the Polymarket market name didn't resolve. Try a well-known symbol. |
+| **Too many runs from this address (429)** | The API allows 10 runs per minute per IP. Wait a minute and retry. |
 | **Port 3000 in use** | Run on another port: `npm run dev -- -p 3001`. |
 
 ---

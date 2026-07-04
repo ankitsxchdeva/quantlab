@@ -32,15 +32,19 @@ Full walkthrough with screenshots: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 | `npm run test` | Vitest suite |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | `next lint` |
+| `npm run coverage` | Vitest suite with V8 coverage |
+| `npm run bench` | Backtest engine benchmarks (10k / 100k / 1M bars) |
+| `npm run eval` | LLM compiler eval harness over a 50-prompt corpus (needs an `EVAL_*` key; skips without one) |
 
 ## Architecture
 
 - `src/lib/strategy/` · strategy DSL schema (Zod) + interpreter
-- `src/lib/backtest/` · engine, metrics, trade simulator, buy-and-hold benchmark
-- `src/lib/data/` · market data adapters (Yahoo Finance, Polymarket)
-- `src/lib/llm/` · multi-provider LLM adapter (Vercel AI SDK)
-- `src/app/api/` · server routes (compile strategy, run backtest)
+- `src/lib/backtest/` · engine, metrics, buy-and-hold benchmark, Monte Carlo bootstrap, out-of-sample robustness split, golden regression fixtures
+- `src/lib/data/` · market data adapters (Yahoo Finance, Polymarket) with shared timeout handling
+- `src/lib/llm/` · multi-provider LLM adapter (Vercel AI SDK) + semantic validator with one-shot repair
+- `src/app/api/` · server route (compile strategy, run backtest; per-IP rate limited, structured request logging)
 - `src/app/` + `src/components/` · UI (idea input, charts, metrics, trade log)
+- `evals/` · LLM compiler eval corpus and harness (separate Vitest config)
 
 ## Strategy DSL
 
@@ -61,11 +65,23 @@ The LLM emits JSON like:
   "exits": [
     { "when": { "op": "crosses_below", "left": "fast", "right": "slow" } }
   ],
-  "risk": { "positionSizePct": 100, "stopLossPct": 5, "takeProfitPct": 10 }
+  "risk": {
+    "positionSizePct": 100,
+    "stopLossPct": 5,
+    "takeProfitPct": 10,
+    "costs": { "commissionBps": 0, "slippageBps": 5, "borrowRateAnnualPct": 0 }
+  }
 }
 ```
 
 This data, not code, drives the backtester · no sandbox required.
+
+## Realism and robustness
+
+- **Costs are on by default.** Every fill pays slippage (5 bps default) plus optional commission, and shorts accrue borrow. Stops and takes that gap past their level fill at the open, not at a price that never traded. On a seeded 6-year daily series, an SMA 20/50 crossover with 20 trades returns -3.52% frictionless but -5.43% with just the default slippage: a 1.91 percentage point drag and $168.63 in costs. The headline reports gross vs net whenever costs moved the outcome.
+- **Robustness checks on every run with 5+ trades.** A seeded Monte Carlo bootstrap (1,000 reshuffles of your closed trades) draws a 5-95% equity fan and the odds of losing money, and a 70/30 in-sample vs out-of-sample split reports whether the edge holds, degrades, or collapses on data the strategy never saw.
+- **The engine is tested hard.** Property-based tests (fast-check) assert no lookahead, fills inside the bar range, non-overlapping trades, and JSON-safe results across thousands of random strategies and price series; golden fixtures pin five full backtests bit-for-bit.
+- **And it is fast.** On a laptop, the engine simulates 10k bars in about 1.2ms, 100k in about 17ms, and 1M in about 230ms; 30 years of daily bars takes about 1ms.
 
 ## Disclaimer
 

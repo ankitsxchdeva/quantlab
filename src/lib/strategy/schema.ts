@@ -93,11 +93,21 @@ export const ExitRuleSchema = z.object({
 });
 export type ExitRule = z.infer<typeof ExitRuleSchema>;
 
+// Trading friction. Defaults apply via Zod so every parsed strategy carries
+// costs without the LLM emitting them; slippage defaults to 5 bps per fill.
+export const CostsSchema = z.object({
+  commissionBps: z.number().min(0).default(0),
+  slippageBps: z.number().min(0).default(5),
+  borrowRateAnnualPct: z.number().min(0).default(0),
+});
+export type Costs = z.infer<typeof CostsSchema>;
+
 export const RiskSchema = z.object({
   positionSizePct: z.number().min(0).max(100).default(100),
   stopLossPct: z.number().min(0).max(100).optional(),
   takeProfitPct: z.number().min(0).max(1000).optional(),
   maxBarsInTrade: z.number().int().positive().optional(),
+  costs: CostsSchema.default({}),
 });
 export type Risk = z.infer<typeof RiskSchema>;
 

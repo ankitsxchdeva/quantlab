@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { Bar } from "../types";
-import { sma, ema, rsi, macd, bbands, atr, computeIndicator } from "./indicators";
+import type { Indicator } from "./schema";
+import { sma, ema, rsi, macd, bbands, atr, stddev, highest, lowest, computeIndicator, warmupBars, type Series } from "./indicators";
 import { evalCondition } from "./evaluate";
 
 function makeBars(closes: number[]): Bar[] {
@@ -96,6 +97,92 @@ describe("ATR", () => {
     expect(out[12]).toBeNull();
     expect(out[13]).not.toBeNull();
     expect((out[13] as number) > 0).toBe(true);
+  });
+});
+
+describe("STDDEV", () => {
+  it("computes rolling population stddev with null warmup", () => {
+    const out = stddev([1, 2, 3, 4, 5], 3);
+    expect(out[0]).toBeNull();
+    expect(out[1]).toBeNull();
+    // Every window {n, n+1, n+2}: mean n+1, variance (1+0+1)/3 = 2/3.
+    const expected = Math.sqrt(2 / 3);
+    expect(out[2]).toBeCloseTo(expected, 10);
+    expect(out[3]).toBeCloseTo(expected, 10);
+    expect(out[4]).toBeCloseTo(expected, 10);
+  });
+
+  it("is zero on a constant series", () => {
+    const out = stddev([7, 7, 7, 7], 2);
+    expect(out[1]).toBe(0);
+    expect(out[3]).toBe(0);
+  });
+});
+
+describe("HIGHEST", () => {
+  it("computes rolling max with null warmup", () => {
+    const out = highest([1, 3, 2, 5, 4], 3);
+    expect(out[0]).toBeNull();
+    expect(out[1]).toBeNull();
+    expect(out[2]).toBe(3);
+    expect(out[3]).toBe(5);
+    expect(out[4]).toBe(5);
+  });
+});
+
+describe("LOWEST", () => {
+  it("computes rolling min with null warmup", () => {
+    const out = lowest([5, 3, 4, 1, 2], 3);
+    expect(out[0]).toBeNull();
+    expect(out[1]).toBeNull();
+    expect(out[2]).toBe(3);
+    expect(out[3]).toBe(1);
+    expect(out[4]).toBe(1);
+  });
+});
+
+describe("warmupBars", () => {
+  const bars = makeBars(Array.from({ length: 60 }, (_, i) => 100 + Math.sin(i / 3) * 10));
+
+  function firstNonNull(s: Series): number {
+    return s.findIndex((v) => v !== null);
+  }
+
+  // Convention: warmupBars(ind) is the number of bars needed, so the first
+  // non-null index is warmupBars - 1.
+  const exact: Indicator[] = [
+    { id: "x", type: "SMA", source: "close", period: 5 },
+    { id: "x", type: "EMA", source: "close", period: 5 },
+    { id: "x", type: "RSI", source: "close", period: 14 },
+    { id: "x", type: "BBANDS", source: "close", period: 20, stddev: 2, output: "upper" },
+    { id: "x", type: "ATR", period: 14 },
+    { id: "x", type: "STDDEV", source: "close", period: 20 },
+    { id: "x", type: "HIGHEST", source: "high", period: 10 },
+    { id: "x", type: "LOWEST", source: "low", period: 10 },
+  ];
+
+  for (const ind of exact) {
+    it(`${ind.type}: first non-null index is warmupBars - 1`, () => {
+      const series = computeIndicator(ind, bars);
+      expect(firstNonNull(series)).toBe(warmupBars(ind) - 1);
+    });
+  }
+
+  it("MACD: warmupBars is a safe upper bound for every output", () => {
+    // First non-null: macd line at slow - 1 = 25, signal/hist at
+    // (slow-1) + (signal-1) = 33 for 26/9; warmupBars is output-dependent
+    // and exact (first non-null index == warmupBars - 1).
+    const sig: Indicator = { id: "x", type: "MACD", source: "close", fast: 12, slow: 26, signal: 9, output: "signal" };
+    const hist: Indicator = { ...sig, output: "hist" };
+    const line: Indicator = { ...sig, output: "macd" };
+    expect(firstNonNull(computeIndicator(sig, bars))).toBe(33);
+    expect(firstNonNull(computeIndicator(hist, bars))).toBe(33);
+    expect(firstNonNull(computeIndicator(line, bars))).toBe(25);
+    for (const ind of [sig, hist, line]) {
+      const series = computeIndicator(ind, bars);
+      expect(firstNonNull(series)).toBeLessThanOrEqual(warmupBars(ind) - 1);
+      expect(series[warmupBars(ind) - 1]).not.toBeNull();
+    }
   });
 });
 

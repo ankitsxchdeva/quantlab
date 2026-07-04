@@ -1,6 +1,6 @@
 import { runBacktest } from "@/lib/backtest/engine";
 import type { Bar, BacktestResult, MarketResolution } from "@/lib/types";
-import type { Strategy } from "@/lib/strategy/schema";
+import { StrategySchema, type Strategy } from "@/lib/strategy/schema";
 
 function mulberry32(seed: number): () => number {
   let t = seed >>> 0;
@@ -50,7 +50,9 @@ function synthesizeBars(symbol: string, days: number): Bar[] {
   return bars;
 }
 
-const DEMO_STRATEGY: Strategy = {
+// Parsed through the schema so defaults (position size, risk.costs with
+// 5 bps slippage) stay in sync with what real LLM-compiled strategies get.
+const DEMO_STRATEGY: Strategy = StrategySchema.parse({
   name: "Golden cross on a synthetic blue chip",
   description: "Buy when the 50-day SMA crosses above the 200-day SMA, sell when it crosses back below. Classic Wall-Street trend filter applied to a synthetic dataset (real Yahoo data flows the same way once you add a key).",
   asset: "DEMO",
@@ -69,7 +71,7 @@ const DEMO_STRATEGY: Strategy = {
   ],
   risk: { positionSizePct: 100 },
   allowShort: false,
-};
+});
 
 const DEMO_MARKET: MarketResolution = {
   source: "stock",

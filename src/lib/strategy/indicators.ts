@@ -248,7 +248,8 @@ export function warmupBars(ind: Indicator): number {
     case "RSI":
       return ind.period + 1;
     case "MACD":
-      return ind.slow + ind.signal;
+      // First non-null: macd line at slow - 1, signal/hist at slow + signal - 2.
+      return ind.output === "macd" ? ind.slow : ind.slow + ind.signal - 1;
     case "BBANDS":
       return ind.period;
     case "ATR":

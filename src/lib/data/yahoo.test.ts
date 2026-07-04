@@ -98,6 +98,19 @@ describe("fetchBars (yahoo)", () => {
     expect(calledUrl).toContain("interval=60m");
   });
 
+  it("surfaces a distinct timeout message when Yahoo times out", async () => {
+    fetchSpy.mockRejectedValue(new DOMException("The operation timed out", "TimeoutError"));
+    await expect(fetchBars({ symbol: "AAPL", source: "stock", timeframe: "1d", start: "", end: "" })).rejects.toThrow(
+      /Yahoo Finance request timed out for AAPL/,
+    );
+  });
+
+  it("passes an abort signal to the outbound fetch", async () => {
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify(sampleResponse()), { status: 200 }));
+    await fetchBars({ symbol: "AAPL", source: "stock", timeframe: "1d", start: "", end: "" });
+    expect(fetchSpy.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
   it("sorts bars ascending by time", async () => {
     fetchSpy.mockResolvedValue(
       new Response(

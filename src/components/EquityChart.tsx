@@ -2,22 +2,26 @@
 
 import { useEffect, useRef } from "react";
 import type { BenchmarkResult, EquityPoint } from "@/lib/types";
+import type { MonteCarloBandPoint } from "@/lib/backtest/montecarlo";
 
 interface EquityChartProps {
   equity: EquityPoint[];
   benchmark?: BenchmarkResult;
+  bands?: MonteCarloBandPoint[];
   height?: number;
 }
 
 const ACCENT = "#3ec27a";
 const ACCENT_FILL_TOP = "rgba(62, 194, 122, 0.32)";
 const ACCENT_FILL_BOTTOM = "rgba(62, 194, 122, 0.02)";
+const FAN_FILL = "rgba(62, 194, 122, 0.10)";
+const FAN_EDGE = "rgba(62, 194, 122, 0.28)";
 const NEUTRAL_LINE = "#857d72";
 const TEXT_2 = "#a9a298";
 const BORDER = "#36312a";
 const SURFACE_1 = "#221f1a";
 
-export default function EquityChart({ equity, benchmark, height = 280 }: EquityChartProps) {
+export default function EquityChart({ equity, benchmark, bands, height = 280 }: EquityChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -49,6 +53,42 @@ export default function EquityChart({ equity, benchmark, height = 280 }: EquityC
         crosshair: { mode: 1 },
         autoSize: false,
       });
+
+      // Monte Carlo percentile fan, drawn first so everything else sits on
+      // top. lightweight-charts has no band series, so the 5-95% band is an
+      // area fill at p95 masked below p5 with a background-colored fill.
+      if (bands && bands.length > 1) {
+        const toPoint = (value: number, p: MonteCarloBandPoint) => ({
+          time: Math.floor(p.time / 1000) as never,
+          value,
+        });
+        const fanOptions = {
+          lineWidth: 1 as const,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        };
+        const fanTop = chart.addAreaSeries({
+          ...fanOptions,
+          lineColor: FAN_EDGE,
+          topColor: FAN_FILL,
+          bottomColor: FAN_FILL,
+        });
+        fanTop.setData(bands.map((p) => toPoint(p.p95, p)));
+        const fanMask = chart.addAreaSeries({
+          ...fanOptions,
+          lineColor: FAN_EDGE,
+          topColor: SURFACE_1,
+          bottomColor: SURFACE_1,
+        });
+        fanMask.setData(bands.map((p) => toPoint(p.p5, p)));
+        const fanMedian = chart.addLineSeries({
+          ...fanOptions,
+          color: FAN_EDGE,
+          lineStyle: 2,
+        });
+        fanMedian.setData(bands.map((p) => toPoint(p.p50, p)));
+      }
 
       if (benchmark && benchmark.equity.length > 0) {
         const bench = chart.addLineSeries({
@@ -99,7 +139,7 @@ export default function EquityChart({ equity, benchmark, height = 280 }: EquityC
       disposed = true;
       if (cleanup) cleanup();
     };
-  }, [equity, benchmark, height]);
+  }, [equity, benchmark, bands, height]);
 
   if (equity.length === 0) {
     return (
@@ -120,6 +160,16 @@ export default function EquityChart({ equity, benchmark, height = 280 }: EquityC
           {benchmark && benchmark.equity.length > 0 && (
             <span className="flex items-center gap-1.5 text-text-3">
               <span className="inline-block w-2.5 h-[1.5px] rounded-full bg-text-3" aria-hidden="true" /> Buy &amp; hold
+            </span>
+          )}
+          {bands && bands.length > 1 && (
+            <span className="flex items-center gap-1.5 text-text-3">
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-[3px]"
+                style={{ backgroundColor: FAN_FILL, border: `1px solid ${FAN_EDGE}` }}
+                aria-hidden="true"
+              />{" "}
+              Monte Carlo 5-95%
             </span>
           )}
         </div>

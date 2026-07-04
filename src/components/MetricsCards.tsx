@@ -115,6 +115,12 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
       tooltip: "Return per unit of volatility. Above 1 is decent, above 2 is good, above 3 is rare. Negative means the equity curve was a roller coaster going the wrong way.",
     },
     {
+      label: "Sortino",
+      value: fmtNum(metrics.sortino, 2),
+      tone: toneFromSign(metrics.sortino),
+      tooltip: "Like Sharpe, but only downside volatility counts against you; upside swings are free. Usually higher than Sharpe for the same strategy.",
+    },
+    {
       label: "Max drawdown",
       value: fmtPct(-Math.abs(metrics.maxDrawdownPct)),
       tone: metrics.maxDrawdownPct > 0 ? "neg" : "neutral",
@@ -128,9 +134,34 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
     },
     {
       label: "Profit factor",
-      value: Number.isFinite(metrics.profitFactor) ? fmtNum(metrics.profitFactor, 2) : "∞",
-      tone: metrics.profitFactor >= 1 ? "pos" : "neg",
-      tooltip: "Total profit divided by total loss. Above 1 means winners outpaced losers. Above 2 is strong. Below 1 means the strategy bled.",
+      value: metrics.profitFactor === null ? "n/a" : fmtNum(metrics.profitFactor, 2),
+      tone: metrics.profitFactor === null ? "neutral" : metrics.profitFactor >= 1 ? "pos" : "neg",
+      hint: metrics.profitFactor === null && metrics.totalTrades > 0 ? "no losing trades" : undefined,
+      tooltip: "Total profit divided by total loss. Above 1 means winners outpaced losers. Above 2 is strong. Below 1 means the strategy bled. n/a means there were no losing trades to divide by.",
+    },
+    {
+      label: "Avg win",
+      value: fmtPct(metrics.avgWinPct),
+      tone: metrics.avgWinPct > 0 ? "pos" : "neutral",
+      tooltip: "Average percentage gain across winning trades.",
+    },
+    {
+      label: "Avg loss",
+      value: fmtPct(metrics.avgLossPct),
+      tone: metrics.avgLossPct < 0 ? "neg" : "neutral",
+      tooltip: "Average percentage loss across losing trades. Healthy strategies keep this smaller than the average win, or win often enough to cover it.",
+    },
+    {
+      label: "Best trade",
+      value: fmtPct(metrics.bestTradePct),
+      tone: metrics.bestTradePct > 0 ? "pos" : "neutral",
+      tooltip: "The single best trade, in percent.",
+    },
+    {
+      label: "Worst trade",
+      value: fmtPct(metrics.worstTradePct),
+      tone: metrics.worstTradePct < 0 ? "neg" : "neutral",
+      tooltip: "The single worst trade, in percent. A preview of the bad day this strategy will eventually hand you.",
     },
     {
       label: "Time in market",
@@ -140,26 +171,28 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
     },
   ];
 
+  // 12 cells over 2 (base), 3 (sm), and 6 (lg) columns; every count divides
+  // 12, so the border rules stay pure index math at each breakpoint: a left
+  // border unless first in row, a top border unless in the first row.
   return (
     <section ref={sectionRef} className="panel overflow-visible">
-      <div className="grid grid-cols-2 lg:grid-cols-7">
-        {cells.map((c, i) => {
-          const lastOnSmall = i === cells.length - 1;
-          return (
-            <div
-              key={c.label}
-              className={cn(
-                "px-4 py-4 sm:px-5 sm:py-5 relative",
-                i > 0 && i % 2 !== 0 && "border-l border-border lg:border-l",
-                i > 0 && i % 2 === 0 && "lg:border-l border-border",
-                i >= 2 && "border-t border-border lg:border-t-0",
-                lastOnSmall && "col-span-2 lg:col-span-1 lg:border-l border-border",
-              )}
-            >
-              <MetricCell cell={c} openId={openId} setOpenId={setOpenId} id={`m-${i}`} />
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        {cells.map((c, i) => (
+          <div
+            key={c.label}
+            className={cn(
+              "px-4 py-4 sm:px-5 sm:py-5 relative border-border",
+              i % 2 !== 0 ? "border-l" : "border-l-0",
+              i % 3 !== 0 ? "sm:border-l" : "sm:border-l-0",
+              i % 6 !== 0 ? "lg:border-l" : "lg:border-l-0",
+              i >= 2 ? "border-t" : "border-t-0",
+              i >= 3 ? "sm:border-t" : "sm:border-t-0",
+              i >= 6 ? "lg:border-t" : "lg:border-t-0",
+            )}
+          >
+            <MetricCell cell={c} openId={openId} setOpenId={setOpenId} id={`m-${i}`} />
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -11,8 +11,12 @@ import TradeLog from "@/components/TradeLog";
 import ResultsHeadline from "@/components/ResultsHeadline";
 import MarketBadge from "@/components/MarketBadge";
 import PhaseIndicator from "@/components/PhaseIndicator";
+import RobustnessCard from "@/components/RobustnessCard";
+import LiveSignalCard from "@/components/LiveSignalCard";
 import type { BacktestResult } from "@/lib/types";
 import type { Strategy } from "@/lib/strategy/schema";
+import { assessRobustness, type RobustnessReport } from "@/lib/backtest/robustness";
+import { runMonteCarlo } from "@/lib/backtest/montecarlo";
 import { getExampleResult } from "@/lib/demo/example";
 
 const SETTINGS_KEY = "algotrading.llm.settings.v1";
@@ -56,13 +60,38 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
   },
 ];
 
+interface StageTimings {
+  compileMs: number;
+  fetchMs: number;
+  backtestMs: number;
+}
+
 interface RunResponse {
   strategy: Strategy;
   result: BacktestResult;
+  requestId?: string;
+  timings?: StageTimings;
+  robustness?: RobustnessReport;
 }
 
 interface ErrorResponse {
   error: string;
+  // 502/500 bodies echo the compiled strategy so users can see what the LLM
+  // produced even when the data fetch or backtest failed.
+  strategy?: Strategy;
+}
+
+function fmtDur(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
+// Same gate as the API: robustness needs enough closed trades to resample.
+function demoRobustness(result: BacktestResult, strategy: Strategy): RobustnessReport | null {
+  if (result.trades.length < 5) return null;
+  return {
+    split: assessRobustness(strategy, result.bars),
+    monteCarlo: runMonteCarlo(result.trades, result.metrics.initialEquity),
+  };
 }
 
 function loadSettings(): LLMSettings {
@@ -148,6 +177,8 @@ export default function Page() {
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [computeMs, setComputeMs] = useState<number | null>(null);
+  const [timings, setTimings] = useState<StageTimings | null>(null);
+  const [robustness, setRobustness] = useState<RobustnessReport | null>(null);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -179,6 +210,8 @@ export default function Page() {
     setStrategy(ex.strategy);
     setResult(ex.result);
     setComputeMs(ex.computeMs);
+    setTimings(null);
+    setRobustness(demoRobustness(ex.result, ex.strategy));
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -191,7 +224,8 @@ export default function Page() {
     setStrategy(null);
     setResult(null);
     setComputeMs(null);
-    const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+    setTimings(null);
+    setRobustness(null);
     try {
       const res = await fetch("/api/run", {
         method: "POST",
@@ -205,6 +239,9 @@ export default function Page() {
       });
       const data = (await res.json().catch(() => ({}))) as Partial<RunResponse & ErrorResponse>;
       if (!res.ok) {
+        // Error bodies may still carry the compiled strategy; keep it so the
+        // user can see what the LLM produced before the pipeline failed.
+        if (data.strategy) setStrategy(data.strategy);
         throw new Error(data.error || `Request failed with status ${res.status}`);
       }
       if (!data.strategy || !data.result) {
@@ -212,8 +249,8 @@ export default function Page() {
       }
       setStrategy(data.strategy);
       setResult(data.result);
-      const endTime = typeof performance !== "undefined" ? performance.now() : Date.now();
-      setComputeMs(endTime - startTime);
+      setTimings(data.timings ?? null);
+      setRobustness(data.robustness ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -367,6 +404,15 @@ export default function Page() {
           </div>
         )}
 
+        {error && strategy && !result && (
+          <div className="space-y-2 animate-fade-in">
+            <p className="text-xs text-text-3">
+              The LLM did compile your idea before the run failed. Here is the strategy it produced:
+            </p>
+            <StrategyView strategy={strategy} />
+          </div>
+        )}
+
         {result && strategy && (
           <div className="space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-3 panel px-4 py-3 animate-fade-in" style={{ animationDelay: "0ms" }}>
@@ -377,13 +423,17 @@ export default function Page() {
                     {result.warnings.length} warning{result.warnings.length === 1 ? "" : "s"}
                   </span>
                 )}
-                {computeMs !== null && (
-                  <span className="text-xs text-text-3 font-mono tabular-nums" title="Total round-trip time including LLM compile, data fetch, and backtest simulation.">
-                    {computeMs < 1000 ? `${Math.round(computeMs)}ms` : `${(computeMs / 1000).toFixed(1)}s`}
+                {timings ? (
+                  <span className="text-xs text-text-3 font-mono tabular-nums" title="Per-stage time measured on the server: LLM compile, market data fetch, backtest simulation.">
+                    LLM {fmtDur(timings.compileMs)} · data {fmtDur(timings.fetchMs)} · backtest {fmtDur(timings.backtestMs)}
                   </span>
-                )}
+                ) : computeMs !== null ? (
+                  <span className="text-xs text-text-3 font-mono tabular-nums" title="Backtest simulation time for the demo dataset.">
+                    backtest {fmtDur(computeMs)}
+                  </span>
+                ) : null}
                 <button
-                  onClick={() => { setResult(null); setStrategy(null); setError(null); setComputeMs(null); }}
+                  onClick={() => { setResult(null); setStrategy(null); setError(null); setComputeMs(null); setTimings(null); setRobustness(null); }}
                   className="btn btn-secondary h-8 text-xs"
                 >
                   Try another idea
@@ -393,6 +443,10 @@ export default function Page() {
 
             <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
               <ResultsHeadline result={result} strategy={strategy} />
+            </div>
+
+            <div className="animate-fade-in" style={{ animationDelay: "90ms" }}>
+              <LiveSignalCard trades={result.trades} assetLabel={result.market.label} />
             </div>
 
             {result.warnings.length > 0 && (
@@ -419,8 +473,13 @@ export default function Page() {
             <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
               <MetricsCards metrics={result.metrics} />
             </div>
+            {robustness && (robustness.split || robustness.monteCarlo) && (
+              <div className="animate-fade-in" style={{ animationDelay: "230ms" }}>
+                <RobustnessCard report={robustness} />
+              </div>
+            )}
             <div className="animate-fade-in" style={{ animationDelay: "260ms" }}>
-              <EquityChart equity={result.equity} benchmark={result.benchmark} />
+              <EquityChart equity={result.equity} benchmark={result.benchmark} bands={robustness?.monteCarlo?.equityBands} />
             </div>
             <div className="animate-fade-in" style={{ animationDelay: "320ms" }}>
               <StrategyView strategy={strategy} />

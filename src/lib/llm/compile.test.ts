@@ -39,7 +39,7 @@ const sampleStrategy: Strategy = {
     },
   ],
   exits: [],
-  risk: { positionSizePct: 100 },
+  risk: { positionSizePct: 100, costs: { commissionBps: 0, slippageBps: 5, borrowRateAnnualPct: 0 } },
   allowShort: false,
 };
 
@@ -75,6 +75,7 @@ describe("compileStrategy", () => {
 
     expect(result.strategy).toEqual(sampleStrategy);
     expect(JSON.parse(result.raw)).toEqual(sampleStrategy);
+    expect(result.repaired).toBe(false);
   });
 
   it("uses the user-provided model override when given", async () => {
@@ -102,6 +103,7 @@ describe("compileStrategy", () => {
       message: "Invalid API key for openai",
       provider: "openai",
     });
+    expect(generateObjectMock).toHaveBeenCalledTimes(1);
   });
 
   it("surfaces a friendly error when the message indicates invalid api key", async () => {
@@ -126,18 +128,35 @@ describe("compileStrategy", () => {
       provider: "anthropic",
       message: expect.stringContaining("Rate limit"),
     });
+    expect(generateObjectMock).toHaveBeenCalledTimes(1);
   });
 
-  it("classifies schema validation failures", async () => {
+  it("repairs a schema validation failure with one retry", async () => {
     const err = Object.assign(new Error("schema validation failed"), { name: "AI_NoObjectGeneratedError" });
+    generateObjectMock.mockRejectedValueOnce(err);
+    generateObjectMock.mockResolvedValueOnce({ object: sampleStrategy });
+
+    const result = await compileStrategy({ provider: "openai", apiKey: "k", prompt: "x" });
+
+    expect(generateObjectMock).toHaveBeenCalledTimes(2);
+    const repairArg = generateObjectMock.mock.calls[1][0] as { prompt: string };
+    expect(repairArg.prompt).toContain("schema validation failed");
+    expect(result.strategy).toEqual(sampleStrategy);
+    expect(result.repaired).toBe(true);
+  });
+
+  it("throws after the repair attempt also fails schema validation", async () => {
+    const err = Object.assign(new Error("schema validation failed"), { name: "AI_NoObjectGeneratedError" });
+    generateObjectMock.mockRejectedValueOnce(err);
     generateObjectMock.mockRejectedValueOnce(err);
 
     await expect(
       compileStrategy({ provider: "openai", apiKey: "k", prompt: "x" }),
     ).rejects.toMatchObject({
       name: "LLMError",
-      message: expect.stringContaining("invalid Strategy object"),
+      message: expect.stringContaining("schema validation failed"),
     });
+    expect(generateObjectMock).toHaveBeenCalledTimes(2);
   });
 
   it("rejects empty API keys before calling the SDK", async () => {
@@ -152,5 +171,56 @@ describe("compileStrategy", () => {
       compileStrategy({ provider: "openai", apiKey: "k", prompt: "   " }),
     ).rejects.toMatchObject({ message: "Prompt is empty" });
     expect(generateObjectMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("compileStrategy semantic repair", () => {
+  const brokenStrategy: Strategy = {
+    ...sampleStrategy,
+    entries: [
+      {
+        side: "long",
+        when: { op: "crosses_above", left: { ref: "sma_50" }, right: { ref: "sma_slow" } },
+      },
+    ],
+  };
+
+  it("runs exactly one repair call on semantic failure and returns the fixed strategy", async () => {
+    generateObjectMock.mockResolvedValueOnce({ object: brokenStrategy });
+    generateObjectMock.mockResolvedValueOnce({ object: sampleStrategy });
+
+    const result = await compileStrategy({ provider: "openai", apiKey: "k", prompt: "golden cross" });
+
+    expect(generateObjectMock).toHaveBeenCalledTimes(2);
+    const repairArg = generateObjectMock.mock.calls[1][0] as { prompt: string; system: string };
+    expect(repairArg.system).toBe(SYSTEM_PROMPT);
+    expect(repairArg.prompt).toContain("golden cross");
+    expect(repairArg.prompt).toContain('"sma_50"');
+    expect(result.strategy).toEqual(sampleStrategy);
+    expect(result.repaired).toBe(true);
+  });
+
+  it("throws with the semantic errors when the repair is still invalid", async () => {
+    generateObjectMock.mockResolvedValueOnce({ object: brokenStrategy });
+    generateObjectMock.mockResolvedValueOnce({ object: brokenStrategy });
+
+    await expect(
+      compileStrategy({ provider: "openai", apiKey: "k", prompt: "golden cross" }),
+    ).rejects.toMatchObject({
+      name: "LLMError",
+      message: expect.stringContaining('"sma_50"'),
+      semanticErrors: [expect.stringContaining('"sma_50"')],
+    });
+    expect(generateObjectMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not repair when the repair call hits a rate limit", async () => {
+    generateObjectMock.mockResolvedValueOnce({ object: brokenStrategy });
+    generateObjectMock.mockRejectedValueOnce(Object.assign(new Error("Too Many Requests"), { statusCode: 429 }));
+
+    await expect(
+      compileStrategy({ provider: "openai", apiKey: "k", prompt: "x" }),
+    ).rejects.toMatchObject({ message: expect.stringContaining("Rate limit") });
+    expect(generateObjectMock).toHaveBeenCalledTimes(2);
   });
 });
