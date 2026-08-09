@@ -9,6 +9,7 @@
 - The LLM emits a **structured strategy DSL, not code**. No code generation, no `eval`.
 - **Pure-TypeScript backtest engine** with free market data: Yahoo Finance (stocks, ETFs, crypto) and Polymarket (prediction markets).
 - **Benchmark or it didn't happen.** Every result is compared to buy-and-hold.
+- **Arb scan tab** for Kalshi multi-leg parlays: prices the hedge against every leg, nets out the exchange's quadratic fee, and reports exactly how much of the exchange it covered. No API key — Kalshi market data is public.
 
 ## Quick start
 
@@ -42,8 +43,10 @@ Full walkthrough with screenshots: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 - `src/lib/backtest/` · engine, metrics, buy-and-hold benchmark, Monte Carlo bootstrap, out-of-sample robustness split, golden regression fixtures
 - `src/lib/data/` · market data adapters (Yahoo Finance, Polymarket) with shared timeout handling
 - `src/lib/llm/` · multi-provider LLM adapter (Vercel AI SDK) + semantic validator with one-shot repair
-- `src/app/api/` · server route (compile strategy, run backtest; per-IP rate limited, structured request logging)
-- `src/app/` + `src/components/` · UI (idea input, charts, metrics, trade log)
+- `src/lib/kalshi/` · public Kalshi market-data client (no key) + the published quadratic fee schedule
+- `src/lib/arb/` · multi-leg parlay arbitrage pricing and the bounded exchange scan
+- `src/app/api/` · server routes (compile strategy + run backtest; arb scan; per-IP rate limited, structured request logging)
+- `src/app/` + `src/components/` · UI (idea input, charts, metrics, trade log, arb scanner)
 - `evals/` · LLM compiler eval corpus and harness (separate Vitest config)
 
 ## Strategy DSL
