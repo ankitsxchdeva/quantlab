@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SettingsPanel, { type LLMSettings } from "@/components/SettingsPanel";
+import TabNav from "@/components/TabNav";
 import StrategyInput, { type ExampleGroup } from "@/components/StrategyInput";
 import StrategyView from "@/components/StrategyView";
 import MetricsCards from "@/components/MetricsCards";
@@ -264,10 +265,9 @@ export default function Page() {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-30 bg-surface-0/85 backdrop-blur-sm border-b border-border">
         <div className="max-w-6xl mx-auto px-5 sm:px-7 py-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <span className="font-mono text-sm tracking-tight text-text-1 font-medium">quantlab</span>
-            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-text-3" aria-hidden="true" />
-            <span className="hidden sm:inline text-xs text-text-3 truncate">a quant lab for normal people</span>
+            <TabNav />
           </div>
 
           <div className="flex items-center gap-2 relative">
