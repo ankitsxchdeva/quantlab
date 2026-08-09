@@ -9,7 +9,7 @@
 - The LLM emits a **structured strategy DSL, not code**. No code generation, no `eval`.
 - **Pure-TypeScript backtest engine** with free market data: Yahoo Finance (stocks, ETFs, crypto) and Polymarket (prediction markets).
 - **Benchmark or it didn't happen.** Every result is compared to buy-and-hold.
-- **Arb scan tab** for Kalshi multi-leg parlays: prices the hedge against every leg, nets out the exchange's quadratic fee, and reports exactly how much of the exchange it covered. No API key — Kalshi market data is public.
+- **Arbitrage tab** for Kalshi multi-leg parlays: prices the hedge against every leg, nets out the exchange's quadratic fee, and reports exactly how much of the exchange it covered. No API key — Kalshi market data is public.
 
 ## Quick start
 

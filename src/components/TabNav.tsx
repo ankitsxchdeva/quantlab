@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/", label: "Backtest" },
-  { href: "/arb", label: "Arb scan" },
+  { href: "/arb", label: "Arbitrage" },
 ];
 
 export default function TabNav() {
