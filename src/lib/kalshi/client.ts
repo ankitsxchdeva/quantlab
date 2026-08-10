@@ -47,8 +47,13 @@ async function get<T>(path: string, params?: Record<string, string | number>): P
 }
 
 export async function fetchMarket(ticker: string): Promise<KalshiMarket> {
-  const { market } = await get<{ market: KalshiMarket }>(`/markets/${encodeURIComponent(ticker)}`);
-  if (!market) throw new Error(`No Kalshi market named ${ticker}`);
+  // Kalshi tickers are upper-case and the API is case-sensitive: a pasted
+  // `kxprogsweep-26nov03` 404s where `KXPROGSWEEP-26NOV03` resolves. Normalize
+  // here rather than at the callers, since this is the one place a ticker
+  // becomes a request path.
+  const normalized = ticker.trim().toUpperCase();
+  const { market } = await get<{ market: KalshiMarket }>(`/markets/${encodeURIComponent(normalized)}`);
+  if (!market) throw new Error(`No Kalshi market named ${normalized}`);
   return market;
 }
 
