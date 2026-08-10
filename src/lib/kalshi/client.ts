@@ -11,6 +11,31 @@ export interface KalshiLeg {
   side: "yes" | "no";
 }
 
+/**
+ * An event groups the markets for one question. `mutually_exclusive` is the
+ * load-bearing field: when true, Kalshi is asserting at most one of the nested
+ * markets can resolve YES, which is a logical constraint we can price without
+ * modelling anything about the underlying subject.
+ *
+ * Note what it does NOT assert: that one of them MUST resolve YES. See
+ * dutchbook.ts for why that asymmetry decides which direction is safe.
+ */
+export interface KalshiEvent {
+  event_ticker: string;
+  series_ticker?: string;
+  title?: string;
+  sub_title?: string;
+  category?: string;
+  mutually_exclusive?: boolean;
+  markets?: KalshiMarket[];
+}
+
+export interface KalshiSeries {
+  ticker: string;
+  fee_type?: string;
+  fee_multiplier?: number;
+}
+
 export interface KalshiMarket {
   ticker: string;
   event_ticker?: string;
@@ -86,4 +111,43 @@ export async function fetchMarketPages(
     }
   }
   return { markets, pages, exhausted: false };
+}
+
+/**
+ * Fetch events with their markets nested, page by page.
+ *
+ * Far cheaper than walking /markets for constraint work: ~200 events per page
+ * carry every nested market's top-of-book, so a handful of pages covers
+ * thousands of markets already grouped by the relationship we care about.
+ * Same hard page budget and same obligation to report coverage.
+ */
+export async function fetchEventPages(
+  maxPages: number,
+  status = "open",
+): Promise<{ events: KalshiEvent[]; pages: number; exhausted: boolean }> {
+  const events: KalshiEvent[] = [];
+  let cursor: string | undefined;
+  let pages = 0;
+  for (; pages < maxPages; ) {
+    const params: Record<string, string | number> = { status, limit: 200, with_nested_markets: "true" };
+    if (cursor) params.cursor = cursor;
+    const page = await get<{ events?: KalshiEvent[]; cursor?: string }>("/events", params);
+    const batch = page.events ?? [];
+    events.push(...batch);
+    pages += 1;
+    cursor = page.cursor;
+    if (!cursor || batch.length === 0) {
+      return { events, pages, exhausted: true };
+    }
+  }
+  return { events, pages, exhausted: false };
+}
+
+/** Fee schedule for a series. Needed to tell maker-free series from the rest. */
+export async function fetchSeries(ticker: string): Promise<KalshiSeries> {
+  const { series } = await get<{ series: KalshiSeries }>(
+    `/series/${encodeURIComponent(ticker.trim().toUpperCase())}`,
+  );
+  if (!series) throw new Error(`No Kalshi series named ${ticker}`);
+  return series;
 }

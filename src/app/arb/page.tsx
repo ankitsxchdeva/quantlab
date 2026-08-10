@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import TabNav from "@/components/TabNav";
 import { apiUrl } from "@/lib/apiBase";
 import type { ParlayEvaluation } from "@/lib/arb/parlay";
 import type { ScanCoverage, DeadParlay } from "@/lib/arb/scan";
+import type { ConstraintCoverage } from "@/lib/arb/constraints";
+import type { DutchBookEvaluation } from "@/lib/arb/dutchbook";
+import type { Resolution } from "@/lib/arb/resolve";
+import type { LLMProvider } from "@/lib/types";
 
 interface ScanResponse {
   mode: "scan";
@@ -20,6 +24,32 @@ interface CheckResponse {
   evaluation: ParlayEvaluation | null;
   parlay: { ticker: string; title: string; status: string; legCount: number };
   legs: { ticker: string; title: string; status: string; result: string }[];
+}
+
+interface ConstraintsResponse {
+  mode: "constraints";
+  takerOpportunities: DutchBookEvaluation[];
+  makerOpportunities: DutchBookEvaluation[];
+  nearMisses: DutchBookEvaluation[];
+  coverage: ConstraintCoverage;
+}
+
+interface ResolveResponse {
+  mode: "resolve";
+  resolution: Resolution;
+  evaluation: ParlayEvaluation | null;
+  parlay: { ticker: string; title: string; status: string; rules: string };
+  legs: { ticker: string; title: string; status: string; result: string }[];
+}
+
+// Shared with the backtest tab: the same key the user already pasted there is
+// the one a leg recovery needs, so they never enter it twice.
+const SETTINGS_KEY = "algotrading.llm.settings.v1";
+
+interface StoredSettings {
+  provider: LLMProvider;
+  apiKey: string;
+  model?: string;
 }
 
 // MVE parlay tickers are generated per leg-combination and churn constantly, so
@@ -97,6 +127,69 @@ function EvaluationCard({ e }: { e: ParlayEvaluation }) {
   );
 }
 
+/**
+ * One mutually exclusive set.
+ *
+ * Shows bids / mids / asks together on purpose. A maker "edge" is only
+ * interesting when the bid sum is above 100 or the ask sum below it; otherwise
+ * it is half the aggregate spread wearing a disguise, which the footer says
+ * outright rather than leaving for the reader to derive.
+ */
+function ConstraintCard({ e }: { e: DutchBookEvaluation }) {
+  const bidSum = e.sellTaker?.grossCents ?? 0;
+  const askSum = e.buyTakerExhaustiveAssumed?.grossCents ?? 0;
+  const mispriced = bidSum > 100 || askSum < 100;
+
+  return (
+    <div className="panel p-4 space-y-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm text-text-1">{e.title || e.eventTicker}</span>
+        <span className="text-xs font-mono text-text-3 shrink-0">{e.legCount} legs</span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 text-xs">
+        <div>
+          <div className="text-text-3">Sell all at bid</div>
+          <div className="font-mono tabular-nums text-text-1">{bidSum.toFixed(1)}c</div>
+          <div className="text-text-3 mt-0.5">
+            net {c(e.sellTaker?.edgeCents ?? 0)} · size {e.sellTaker?.maxSize ?? "-"}
+          </div>
+        </div>
+        <div>
+          <div className="text-text-3">Sell all at mid</div>
+          <div className="font-mono tabular-nums text-text-1">
+            {e.sellMakerAtMid ? `${e.sellMakerAtMid.grossCents.toFixed(1)}c` : "n/a"}
+          </div>
+          <div className="text-text-3 mt-0.5">
+            {e.sellMakerAtMid ? `net ${c(e.sellMakerAtMid.edgeCents)} · must fill` : "maker fee unknown"}
+          </div>
+        </div>
+        <div>
+          <div className="text-text-3">Buy all at ask</div>
+          <div className="font-mono tabular-nums text-text-1">{askSum.toFixed(1)}c</div>
+          <div className="text-text-3 mt-0.5">needs exhaustive set</div>
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-2 text-xs leading-relaxed">
+        {mispriced ? (
+          <span className="text-accent">
+            The bid/ask sums straddle $1 the wrong way, which is a genuine mispricing rather
+            than a spread artifact.
+          </span>
+        ) : (
+          <span className="text-text-3">
+            Bids sum to {bidSum.toFixed(1)}c, so the set is fairly priced. Aggregate spread is{" "}
+            <span className="font-mono">{e.aggregateSpreadCents.toFixed(1)}c</span>, and the
+            mid-price edge is about half of it. That is market-making revenue for quoting every
+            leg, not arbitrage.
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Coverage({ coverage }: { coverage: ScanCoverage }) {
   const rows: [string, string][] = [
     ["Markets scanned", coverage.marketsScanned.toLocaleString()],
@@ -133,18 +226,84 @@ function Coverage({ coverage }: { coverage: ScanCoverage }) {
   );
 }
 
+/** An LLM's proposed legs, always shown before any price derived from them. */
+function ResolutionCard({ r }: { r: Resolution }) {
+  return (
+    <div className="panel p-4 space-y-3">
+      <div className="micro-label">Recovered legs</div>
+
+      {r.legs.length > 0 && (
+        <div className="space-y-2">
+          {r.legs.map((leg) => (
+            <div key={leg.ticker} className="text-xs border-b border-border/50 pb-2">
+              <div className="flex justify-between gap-3">
+                <span className="font-mono text-text-1 truncate">{leg.ticker}</span>
+                <span
+                  className={`shrink-0 font-mono ${leg.confidence === "high" ? "text-text-2" : "text-warning"}`}
+                >
+                  needs {leg.needs} · {leg.confidence}
+                </span>
+              </div>
+              <div className="text-text-3 mt-1">{leg.claim}</div>
+              <div className="text-text-3 mt-0.5 italic">{leg.reasoning}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {r.unresolved.length > 0 && (
+        <div className="space-y-1">
+          {r.unresolved.map((u) => (
+            <div key={u.claim} className="text-xs text-warning">
+              Unmatched: {u.claim}
+              <div className="text-text-3">
+                {u.reason} ({u.candidatesShown} candidates shown)
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-text-3 leading-relaxed border-t border-border pt-2">
+        A model proposed these mappings from {r.corpusMarkets.toLocaleString()} live markets;
+        every ticker was checked to exist before use, and no price came from the model. Read
+        them before trusting anything priced on top: a leg matched to the wrong contest is a
+        hedge against the wrong contract.
+      </p>
+    </div>
+  );
+}
+
 export default function ArbPage() {
   const [scan, setScan] = useState<ScanResponse | null>(null);
   const [check, setCheck] = useState<CheckResponse | null>(null);
+  const [constraints, setConstraints] = useState<ConstraintsResponse | null>(null);
+  const [resolved, setResolved] = useState<ResolveResponse | null>(null);
   const [ticker, setTicker] = useState("");
-  const [busy, setBusy] = useState<"scan" | "check" | null>(null);
+  const [busy, setBusy] = useState<"scan" | "check" | "constraints" | "resolve" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<StoredSettings | null>(null);
 
-  async function post(body: unknown, kind: "scan" | "check") {
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SETTINGS_KEY);
+      if (raw) setSettings(JSON.parse(raw) as StoredSettings);
+    } catch {
+      setSettings(null);
+    }
+  }, []);
+
+  const hasKey = Boolean(settings?.apiKey);
+
+  async function post(body: unknown, kind: "scan" | "check" | "constraints" | "resolve") {
     setBusy(kind);
     setError(null);
     if (kind === "scan") setScan(null);
-    else setCheck(null);
+    else if (kind === "check") {
+      setCheck(null);
+      setResolved(null);
+    } else if (kind === "constraints") setConstraints(null);
+    else setResolved(null);
     try {
       const res = await fetch(apiUrl("/api/arb"), {
         method: "POST",
@@ -154,12 +313,29 @@ export default function ArbPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `Request failed (${res.status})`);
       if (kind === "scan") setScan(json as ScanResponse);
-      else setCheck(json as CheckResponse);
+      else if (kind === "check") setCheck(json as CheckResponse);
+      else if (kind === "constraints") setConstraints(json as ConstraintsResponse);
+      else setResolved(json as ResolveResponse);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setBusy(null);
     }
+  }
+
+  function recoverLegs() {
+    if (!settings?.apiKey) return;
+    post(
+      {
+        mode: "resolve",
+        ticker: ticker.trim(),
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        maxPages: 20,
+      },
+      "resolve",
+    );
   }
 
   return (
@@ -220,11 +396,25 @@ export default function ArbPage() {
                 {busy === "check" ? "Pricing..." : "Price the hedge"}
               </button>
             </div>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button
+                onClick={recoverLegs}
+                disabled={busy !== null || !ticker.trim() || !hasKey}
+                className="btn btn-secondary h-8 text-xs"
+              >
+                {busy === "resolve" ? "Recovering legs..." : "Recover legs with an LLM"}
+              </button>
+              <span className="text-xs text-text-3">
+                {hasKey
+                  ? "For hand-listed parlays that state their legs in rules text only."
+                  : "Needs an LLM key — paste one in the backtest tab's Settings."}
+              </span>
+            </div>
             <p className="mt-2 text-xs text-text-3 leading-relaxed">
-              Works on MVE parlays, which publish their legs as structured data. Hand-listed
-              parlays like <span className="font-mono">KXPROGSWEEP</span> describe their legs
-              in rules text only, so they are not priceable here yet. Run a scan and click a
-              row to fill this in.
+              MVE parlays publish their legs as structured data and price directly. Hand-listed
+              ones like <span className="font-mono">KXPROGSWEEP</span> describe them in prose,
+              so recovering the legs takes a model — which proposes the mapping while the
+              pricing stays deterministic.
             </p>
           </div>
 
@@ -238,12 +428,124 @@ export default function ArbPage() {
               >
                 {busy === "scan" ? "Scanning..." : "Scan 20k markets"}
               </button>
+              <button
+                onClick={() => post({ mode: "constraints", maxPages: 12 }, "constraints")}
+                disabled={busy !== null}
+                className="btn btn-secondary h-9 text-sm"
+              >
+                {busy === "constraints" ? "Scanning..." : "Scan logical constraints"}
+              </button>
               <span className="text-xs text-text-3">
                 Takes a few seconds. Reports exactly what it covered.
               </span>
             </div>
+            <p className="mt-2 text-xs text-text-3 leading-relaxed">
+              Constraints looks at mutually exclusive events instead of parlays. At most one leg
+              can pay, so selling every leg for more than $1 is risk-free — no view on the
+              subject required.
+            </p>
           </div>
         </section>
+
+        {resolved && (
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-sm font-semibold text-text-1">
+                {resolved.parlay.title || resolved.parlay.ticker}
+              </h2>
+              <span className="text-xs text-text-3 font-mono">{resolved.parlay.status}</span>
+            </div>
+            {resolved.parlay.rules && (
+              <p className="text-xs text-text-3 leading-relaxed panel p-3">
+                {resolved.parlay.rules}
+              </p>
+            )}
+            <ResolutionCard r={resolved.resolution} />
+            {resolved.resolution.blockedReason ? (
+              <div className="panel p-4 text-sm text-warning">
+                Not priced. {resolved.resolution.blockedReason}
+              </div>
+            ) : resolved.evaluation ? (
+              <EvaluationCard e={resolved.evaluation} />
+            ) : (
+              <div className="panel p-4 text-sm text-text-2">
+                Legs recovered, but the hedge is not priceable right now: every unsettled leg
+                needs a live quote on the side you would buy.
+              </div>
+            )}
+          </section>
+        )}
+
+        {constraints && (
+          <section className="space-y-4">
+            {constraints.takerOpportunities.length > 0 ? (
+              <>
+                <h2 className="text-sm font-semibold text-accent">
+                  {constraints.takerOpportunities.length} risk-free, executable now
+                </h2>
+                {constraints.takerOpportunities.map((e) => (
+                  <ConstraintCard key={e.eventTicker} e={e} />
+                ))}
+              </>
+            ) : (
+              <div className="panel p-4">
+                <h2 className="text-sm font-semibold text-text-1">
+                  Nothing clears by crossing the spread
+                </h2>
+                <p className="mt-2 text-xs text-text-3 leading-relaxed">
+                  Expected. Selling every leg pays the quadratic fee once per leg, and the gross
+                  edges these sets throw off run a few cents while the fees run many more. The
+                  results below clear only as resting orders, which means they are not
+                  arbitrage — they require every leg to fill.
+                </p>
+              </div>
+            )}
+
+            {constraints.makerOpportunities.length > 0 && (
+              <>
+                <h2 className="text-sm font-semibold text-warning">
+                  {constraints.makerOpportunities.length} clear only at mid, if every leg fills
+                </h2>
+                {constraints.makerOpportunities.map((e) => (
+                  <ConstraintCard key={e.eventTicker} e={e} />
+                ))}
+              </>
+            )}
+
+            <div className="panel p-4">
+              <div className="micro-label mb-3">Coverage</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
+                {(
+                  [
+                    ["Events scanned", constraints.coverage.eventsScanned.toLocaleString()],
+                    [
+                      "Pages",
+                      `${constraints.coverage.pagesScanned}${constraints.coverage.exhausted ? " (all)" : ""}`,
+                    ],
+                    ["Mutually exclusive", constraints.coverage.mutuallyExclusive.toLocaleString()],
+                    ["Priced", constraints.coverage.priced.toLocaleString()],
+                    ["Skipped: unpriceable", constraints.coverage.skippedUnpriceable.toLocaleString()],
+                    [
+                      "Skipped: maker fee unknown",
+                      constraints.coverage.skippedMakerFeeUnknown.toLocaleString(),
+                    ],
+                    ["Skipped: spread too wide", constraints.coverage.skippedWideSpread.toLocaleString()],
+                    ["Series lookups", constraints.coverage.seriesFetches.toLocaleString()],
+                    ["Elapsed", `${(constraints.coverage.elapsedMs / 1000).toFixed(1)}s`],
+                  ] as [string, string][]
+                ).map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex justify-between gap-2 border-b border-border/50 pb-1"
+                  >
+                    <span className="text-text-3">{label}</span>
+                    <span className="font-mono tabular-nums text-text-1">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {check && (
           <section className="space-y-3">

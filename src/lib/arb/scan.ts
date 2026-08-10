@@ -1,6 +1,8 @@
-import { fetchMarket, fetchMarketPages, type KalshiMarket } from "@/lib/kalshi/client";
+import { fetchEventPages, fetchMarket, fetchMarketPages, type KalshiMarket } from "@/lib/kalshi/client";
 import { DEFAULT_FEE_RATE } from "@/lib/kalshi/fees";
 import { evaluateDeadParlay, evaluateParlay, type ParlayEvaluation } from "./parlay";
+import { resolveHandListedLegs, type Resolution } from "./resolve";
+import type { LLMProvider } from "@/lib/types";
 
 /**
  * How much of the exchange a scan actually looked at.
@@ -81,6 +83,54 @@ export async function checkParlay(
   const legs = await Promise.all(legTickers.map((t) => fetchMarket(t)));
   const map = new Map(legs.map((m) => [m.ticker, m]));
   return { evaluation: evaluateParlay(parlay, map, feeRate), parlay, legs };
+}
+
+export interface HandListedCheck {
+  parlay: KalshiMarket;
+  resolution: Resolution;
+  evaluation: ParlayEvaluation | null;
+  legs: KalshiMarket[];
+}
+
+/**
+ * Price a hand-listed parlay by first recovering its legs with an LLM.
+ *
+ * The recovered legs are fed through the SAME `evaluateParlay` used by MVE
+ * parlays -- once legs are known the two cases are identical, and duplicating
+ * the pricing would mean two places for the hedge maths to drift.
+ *
+ * `blockedReason` short-circuits pricing. A resolution that could not match
+ * every claim must not be priced: a hedge missing a leg is not a cheaper
+ * arbitrage, it is an unhedged position that looks like one.
+ */
+export async function checkHandListedParlay(opts: {
+  ticker: string;
+  provider: LLMProvider;
+  apiKey: string;
+  model?: string;
+  maxPages?: number;
+  feeRate?: number;
+}): Promise<HandListedCheck> {
+  const { ticker, provider, apiKey, model, maxPages = 20, feeRate = DEFAULT_FEE_RATE } = opts;
+  const parlay = await fetchMarket(ticker);
+
+  const { events } = await fetchEventPages(maxPages);
+  const resolution = await resolveHandListedLegs({ parlay, events, provider, apiKey, model });
+
+  if (resolution.blockedReason) {
+    return { parlay, resolution, evaluation: null, legs: [] };
+  }
+
+  // Synthesise the structure an MVE parlay would have published, then reuse the
+  // existing hedge pricing verbatim.
+  const synthetic: KalshiMarket = {
+    ...parlay,
+    mve_selected_legs: resolution.legs.map((l) => ({ market_ticker: l.ticker, side: l.needs })),
+  };
+  const legs = await Promise.all(resolution.legs.map((l) => fetchMarket(l.ticker)));
+  const map = new Map(legs.map((m) => [m.ticker, m]));
+
+  return { parlay, resolution, evaluation: evaluateParlay(synthetic, map, feeRate), legs };
 }
 
 export async function scanForArbitrage(options: ScanOptions = {}): Promise<ScanResult> {
