@@ -5,9 +5,15 @@ this app needs a server to call LLM providers, Yahoo Finance and Kalshi.
 
 ```
 GitHub Pages (static UI)        Tailscale Funnel          home server
-ankitsxchdeva.github.io  ──────▶ raspberrypi...ts.net ──▶  quantlab container
-        /quantlab/                :10000/quantlab           host 8002 → :3000
+ankitsachdeva.com/quantlab/ ───▶ raspberrypi...ts.net ──▶  quantlab container
+                                  :10000/quantlab           host 8002 → :3000
 ```
+
+The Pages URL is `ankitsachdeva.com/quantlab/`, not `ankitsxchdeva.github.io
+/quantlab/`: the user site carries that custom domain, so project sites inherit
+it — the same way `/lede` and `/kalshi` are served. It matters here because the
+`Origin` browsers send is `https://ankitsachdeva.com`, and that is what the
+API's CORS allowlist must contain. `basePath` stays `/quantlab` either way.
 
 Local `npm run dev` is unaffected: `NEXT_PUBLIC_API_BASE` is unset, so the UI
 calls `/api/*` on its own origin exactly as before.
