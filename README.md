@@ -24,12 +24,16 @@ There are no environment variables to set. The key is entered in the browser and
 
 Full walkthrough with screenshots: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 
+Hosted split: static UI on GitHub Pages, API on a home server behind a Cloudflare
+tunnel. See [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Scripts
 
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Dev server on :3000 |
 | `npm run build` / `npm run start` | Production build / serve |
+| `npm run build:static` | Static UI export for GitHub Pages (no API; see [docs/DEPLOY.md](docs/DEPLOY.md)) |
 | `npm run test` | Vitest suite |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | `next lint` |

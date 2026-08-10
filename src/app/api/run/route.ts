@@ -6,6 +6,7 @@ import { fetchBars } from "@/lib/data";
 import { runBacktest } from "@/lib/backtest/engine";
 import { assessRobustness, type RobustnessReport } from "@/lib/backtest/robustness";
 import { runMonteCarlo } from "@/lib/backtest/montecarlo";
+import { preflight, withCors } from "@/lib/cors";
 import type { LLMProvider } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -55,7 +56,17 @@ interface Timings {
   backtestMs: number;
 }
 
+export function OPTIONS(req: Request): NextResponse {
+  return preflight(req);
+}
+
+// The UI is served cross-origin from GitHub Pages, so every exit path needs
+// CORS headers. Wrapping once here beats threading them through each return.
 export async function POST(req: Request): Promise<NextResponse> {
+  return withCors(await handleRun(req), req);
+}
+
+async function handleRun(req: Request): Promise<NextResponse> {
   const requestId = randomUUID();
   const ip = clientIp(req);
   const timings: Timings = { compileMs: 0, fetchMs: 0, backtestMs: 0 };

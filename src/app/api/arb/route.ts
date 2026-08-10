@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { checkParlay, scanForArbitrage } from "@/lib/arb/scan";
+import { preflight, withCors } from "@/lib/cors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +39,15 @@ function isRateLimited(ip: string, now: number): boolean {
   return limited;
 }
 
+export function OPTIONS(req: Request): NextResponse {
+  return preflight(req);
+}
+
 export async function POST(req: Request): Promise<NextResponse> {
+  return withCors(await handleArb(req), req);
+}
+
+async function handleArb(req: Request): Promise<NextResponse> {
   const now = Date.now();
   if (isRateLimited(clientIp(req), now)) {
     return NextResponse.json(

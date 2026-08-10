@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.git
+.github
+.gstack
+.design-audit
+docs
+evals
+coverage
+*.log
+*.tsbuildinfo
+.DS_Store
+.env*.local
+.api-stash

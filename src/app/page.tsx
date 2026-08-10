@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SettingsPanel, { type LLMSettings } from "@/components/SettingsPanel";
+import { apiUrl } from "@/lib/apiBase";
 import TabNav from "@/components/TabNav";
 import StrategyInput, { type ExampleGroup } from "@/components/StrategyInput";
 import StrategyView from "@/components/StrategyView";
@@ -228,7 +229,7 @@ export default function Page() {
     setTimings(null);
     setRobustness(null);
     try {
-      const res = await fetch("/api/run", {
+      const res = await fetch(apiUrl("/api/run"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

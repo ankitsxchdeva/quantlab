@@ -1,0 +1,47 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only the UI ships here. The API it talks to runs on the home box; its origin
+# comes from the repo variable API_BASE (Settings > Secrets and variables >
+# Actions > Variables). Unset means the deployed site has no working backend.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A queued deploy should replace a running one, not race it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build:static
+        env:
+          NEXT_PUBLIC_API_BASE: ${{ vars.API_BASE }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

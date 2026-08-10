@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import TabNav from "@/components/TabNav";
+import { apiUrl } from "@/lib/apiBase";
 import type { ParlayEvaluation } from "@/lib/arb/parlay";
 import type { ScanCoverage, DeadParlay } from "@/lib/arb/scan";
 
@@ -145,7 +146,7 @@ export default function ArbPage() {
     if (kind === "scan") setScan(null);
     else setCheck(null);
     try {
-      const res = await fetch("/api/arb", {
+      const res = await fetch(apiUrl("/api/arb"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
