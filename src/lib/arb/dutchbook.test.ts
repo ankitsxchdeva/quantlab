@@ -135,6 +135,25 @@ describe("evaluateDutchBook", () => {
     expect(ev).not.toHaveProperty("buyTaker");
   });
 
+  // The buy-side fee was written out by hand and dropped the /100 that the
+  // published schedule carries, inflating it 100x and driving edgeCents to
+  // roughly -400 on a set that is only 15c away from paying. Only grossCents
+  // was asserted, so nothing caught it.
+  it("charges a buy-side fee on the same scale as the sell side", () => {
+    const e = event([
+      market({ ticker: "A", yes_bid_dollars: "0.38", yes_ask_dollars: "0.40" }),
+      market({ ticker: "B", yes_bid_dollars: "0.43", yes_ask_dollars: "0.45" }),
+    ]);
+    const ev = evaluateDutchBook(e, "quadratic")!;
+    const buyFee = ev.buyTakerExhaustiveAssumed!.feeCents;
+
+    // 0.07 * 40 * 60 / 100 + 0.07 * 45 * 55 / 100 = 1.68 + 1.7325
+    expect(buyFee).toBeCloseTo(3.4125, 6);
+    // A two-leg fee can never exceed the $1 the trade is competing for.
+    expect(buyFee).toBeLessThan(100);
+    expect(ev.buyTakerExhaustiveAssumed!.edgeCents).toBeCloseTo(100 - 85 - 3.4125, 6);
+  });
+
   it("skips settled legs but still prices the live remainder", () => {
     const e = event([
       market({ ticker: "A" }),

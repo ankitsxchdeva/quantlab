@@ -35,6 +35,23 @@ export function takerFeePerContract(
 }
 
 /**
+ * Per-contract taker fee in cents, without the per-order rounding.
+ *
+ * `takerFeeCents` rounds the whole order up to the next cent, which is right for
+ * a concrete order but wrong for a continuous search: the breakeven solver needs
+ * a smooth function, and size-independent cost estimates have no order to round.
+ *
+ * Substituting C = 1 and p = priceCents/100 into the published schedule gives
+ * `rate * p * (1 - p) * 100` = `rate * priceCents * (100 - priceCents) / 100`.
+ * That trailing /100 is easy to drop when the formula is written out by hand,
+ * and dropping it inflates every fee by exactly 100x -- which is precisely what
+ * had happened in both callers before this helper existed. Derive it here once.
+ */
+export function takerFeeCentsPerContract(priceCents: number, rate: number = DEFAULT_FEE_RATE): number {
+  return (rate * priceCents * (100 - priceCents)) / 100;
+}
+
+/**
  * How a series charges, straight from /series/{ticker}.fee_type.
  *
  * This distinction decides whether a logical arbitrage clears at all. Crossing
