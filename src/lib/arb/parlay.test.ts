@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { KalshiMarket } from "@/lib/kalshi/client";
+import { DEFAULT_FEE_RATE } from "@/lib/kalshi/fees";
 import { bestAsk, evaluateDeadParlay, evaluateParlay, legState } from "./parlay";
 
 function market(ticker: string, over: Partial<KalshiMarket> = {}): KalshiMarket {
@@ -84,6 +85,34 @@ describe("evaluateParlay", () => {
     expect(result!.edgeCentsPerContract).toBeLessThan(0);
     // Breakeven must sit below the current ask, or there is nothing to wait for.
     expect(result!.breakevenParlayAskCents).toBeLessThan(result!.parlayAskCents);
+  });
+
+  // "< parlayAsk" alone passed even when breakeven collapsed to the search
+  // floor, which is what it did while the fee term was 100x too large. Pin the
+  // definition instead: buying at the breakeven ask must land total cost plus
+  // fees exactly on the $1 payout.
+  it("returns a breakeven ask where cost plus fees actually equals 100c", () => {
+    const parlay = market("P", {
+      yes_ask_dollars: "0.71",
+      yes_ask_size_fp: "100",
+      mve_selected_legs: [
+        { market_ticker: "A", side: "yes" },
+        { market_ticker: "B", side: "yes" },
+      ],
+    });
+    const legs = new Map([
+      ["A", activeLeg("A", 0.72, 0.73)],
+      ["B", activeLeg("B", 0.96, 0.97)],
+    ]);
+    const result = evaluateParlay(parlay, legs)!;
+    const be = result.breakevenParlayAskCents;
+
+    expect(be).toBeGreaterThan(1);
+
+    const perContractFee = (p: number) => (DEFAULT_FEE_RATE * p * (100 - p)) / 100;
+    const hedgeFees = result.legs.reduce((s, l) => s + perContractFee(l.askCents), 0);
+    const total = be + result.hedgeCostCents + perContractFee(be) + hedgeFees;
+    expect(total).toBeCloseTo(100, 2);
   });
 
   it("reports a genuine edge when the hedge clears fees", () => {

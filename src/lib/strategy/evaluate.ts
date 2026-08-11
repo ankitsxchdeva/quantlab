@@ -1,7 +1,6 @@
 import type { Bar } from "../types";
 import type { Condition, Operand, PriceSource } from "./schema";
 import type { Series } from "./indicators";
-import { priceSeries } from "./indicators";
 
 export interface EvalContext {
   bars: Bar[];

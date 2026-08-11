@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import TabNav from "@/components/TabNav";
+import SettingsPanel, { type LLMSettings } from "@/components/SettingsPanel";
 import { apiUrl } from "@/lib/apiBase";
 import type { ParlayEvaluation } from "@/lib/arb/parlay";
 import type { ScanCoverage, DeadParlay } from "@/lib/arb/scan";
@@ -46,10 +47,38 @@ interface ResolveResponse {
 // the one a leg recovery needs, so they never enter it twice.
 const SETTINGS_KEY = "algotrading.llm.settings.v1";
 
-interface StoredSettings {
-  provider: LLMProvider;
-  apiKey: string;
-  model?: string;
+const DEFAULT_SETTINGS: LLMSettings = {
+  provider: "openai",
+  apiKey: "",
+  model: undefined,
+};
+
+function loadSettings(): LLMSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw) as Partial<LLMSettings>;
+    if (parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google") {
+      return DEFAULT_SETTINGS;
+    }
+    return {
+      provider: parsed.provider,
+      apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
+      model: typeof parsed.model === "string" && parsed.model.length > 0 ? parsed.model : undefined,
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function CogIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
 }
 
 // MVE parlay tickers are generated per leg-combination and churn constantly, so
@@ -282,18 +311,26 @@ export default function ArbPage() {
   const [ticker, setTicker] = useState("");
   const [busy, setBusy] = useState<"scan" | "check" | "constraints" | "resolve" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<StoredSettings | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const [settings, setSettings] = useState<LLMSettings>(DEFAULT_SETTINGS);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(SETTINGS_KEY);
-      if (raw) setSettings(JSON.parse(raw) as StoredSettings);
-    } catch {
-      setSettings(null);
-    }
+    setSettings(loadSettings());
+    setHydrated(true);
   }, []);
 
-  const hasKey = Boolean(settings?.apiKey);
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      // ignore storage failures
+    }
+  }, [settings, hydrated]);
+
+  const hasKey = settings.apiKey.trim().length > 0;
 
   async function post(body: unknown, kind: "scan" | "check" | "constraints" | "resolve") {
     setBusy(kind);
@@ -324,7 +361,7 @@ export default function ArbPage() {
   }
 
   function recoverLegs() {
-    if (!settings?.apiKey) return;
+    if (!hasKey) return;
     post(
       {
         mode: "resolve",
@@ -341,23 +378,71 @@ export default function ArbPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-30 bg-surface-0/85 backdrop-blur-sm border-b border-border">
-        <div className="max-w-6xl mx-auto px-5 sm:px-7 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-5">
-            <Link href="/" className="text-sm font-semibold tracking-tight text-text-1">
+        <div className="max-w-6xl mx-auto px-5 sm:px-7 py-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href="/" className="font-mono text-sm tracking-tight text-text-1 font-medium">
               quantlab
             </Link>
             <TabNav />
           </div>
-          <span className="text-xs text-text-3 hidden sm:inline">No API key required</span>
+
+          <div className="flex items-center gap-2 relative">
+            <button
+              onClick={() => setHowOpen((v) => !v)}
+              className="btn btn-ghost text-xs h-8 px-2.5 hidden sm:inline-flex"
+              aria-expanded={howOpen}
+            >
+              How it works
+            </button>
+            {howOpen && (
+              <div
+                role="dialog"
+                aria-label="How it works"
+                onClick={() => setHowOpen(false)}
+                className="absolute right-0 top-10 z-40 panel-raised px-4 py-4 w-[min(26rem,92vw)] animate-fade-in shadow-lg"
+              >
+                <div className="micro-label mb-2">How it works</div>
+                <ol className="space-y-2.5 text-sm text-text-2">
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">1.</span>
+                    <span>A <span className="text-text-1">parlay</span> pays $1 only if every leg lands. We read its legs from Kalshi.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">2.</span>
+                    <span>Buying the parlay plus the <span className="text-text-1">opposite side of each leg</span> pays $1 in every outcome.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">3.</span>
+                    <span>We price that hedge off <span className="text-text-1">live order books</span> and subtract Kalshi&apos;s per-leg fee.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="font-mono text-text-3 shrink-0 mt-0.5">4.</span>
+                    <span>Anything left under $1 is <span className="text-text-1">risk-free</span>, no matter how correlated the legs are.</span>
+                  </li>
+                </ol>
+                <p className="mt-4 pt-3 border-t border-border text-xs text-text-3 leading-relaxed">
+                  Scanning needs no key. Only leg recovery on hand-listed parlays calls an LLM. Click anywhere to close.
+                </p>
+              </div>
+            )}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Open provider settings"
+              className="btn btn-secondary h-8 px-2.5 text-xs flex items-center gap-1.5"
+            >
+              <CogIcon />
+              <span className="hidden sm:inline">Settings</span>
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-7 py-6 sm:py-10 space-y-6">
-        <section>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-text-1 leading-tight">
+        <section className="relative pt-2 pb-4 sm:pt-6 sm:pb-8">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-text-1 leading-[1.05]">
             Multi-leg arbitrage on Kalshi.
           </h1>
-          <p className="mt-3 text-sm sm:text-base text-text-2 max-w-prose leading-relaxed">
+          <p className="mt-5 text-base sm:text-lg text-text-2 max-w-prose leading-relaxed">
             A parlay pays $1 only if every leg lands. Buy it, then buy the opposite side of
             each leg, and the worst case is still $1. If that costs under $1 after fees, the
             difference is risk-free regardless of how correlated the legs are.
@@ -371,8 +456,22 @@ export default function ArbPage() {
         </section>
 
         {error && (
-          <div role="alert" className="panel p-4 border-danger/40 text-sm text-danger">
-            {error}
+          <div
+            role="alert"
+            className="px-4 py-3 flex items-start justify-between gap-3 rounded-lg border animate-fade-in"
+            style={{ borderColor: "color-mix(in oklch, var(--danger) 40%, transparent)", backgroundColor: "color-mix(in oklch, var(--danger) 10%, transparent)" }}
+          >
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-text-1">Request failed</div>
+              <div className="text-sm text-text-2 mt-1 break-words">{error}</div>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-xs text-text-3 hover:text-text-1 shrink-0"
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 
@@ -407,7 +506,7 @@ export default function ArbPage() {
               <span className="text-xs text-text-3">
                 {hasKey
                   ? "For hand-listed parlays that state their legs in rules text only."
-                  : "Needs an LLM key — paste one in the backtest tab's Settings."}
+                  : "Needs an LLM key — paste one in Settings."}
               </span>
             </div>
             <p className="mt-2 text-xs text-text-3 leading-relaxed">
@@ -650,6 +749,37 @@ export default function ArbPage() {
           </section>
         )}
       </main>
+
+      <footer className="max-w-6xl mx-auto w-full px-5 sm:px-7 py-10 mt-8 text-xs text-text-3 border-t border-border">
+        <div className="grid sm:grid-cols-[1fr_auto] gap-y-5 gap-x-8 items-start">
+          <div className="space-y-3 max-w-prose">
+            <p className="text-text-2 leading-relaxed">
+              Quotes are a snapshot of the order book at scan time, not a fill. Depth moves, legs go untradeable, and an edge that clears fees on paper can be gone before every leg is on. Use this to find candidates, not to size a position. Nothing here is investment advice.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
+                Your API key never leaves your browser
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-info" aria-hidden="true" />
+                No accounts, no tracking, no upsells
+              </span>
+            </div>
+          </div>
+          <div className="flex sm:flex-col gap-4 sm:gap-1 sm:items-end">
+            <span className="font-mono text-text-2">quantlab</span>
+            <span className="text-text-3">v0.1</span>
+          </div>
+        </div>
+      </footer>
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onChange={setSettings}
+      />
     </div>
   );
 }

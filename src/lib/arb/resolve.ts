@@ -268,6 +268,21 @@ export async function resolveHandListedLegs(opts: ResolveOptions): Promise<Resol
     blockedReason = `${unresolved.length} of ${claimList.length} conditions could not be matched to a market. A hedge missing a leg is not cheaper, it is unhedged.`;
   } else if (resolved.length === 0) {
     blockedReason = "No conditions were recovered from the rules.";
+  } else {
+    // Two claims landing on one ticker looks like a full resolution -- nothing
+    // is in `unresolved` -- but it is the same missing-leg failure in disguise:
+    // the hedge would buy that one market twice while the other condition rode
+    // naked. Cheaper-looking and unhedged is the exact trade to refuse.
+    const firstClaimFor = new Map<string, string>();
+    const collisions: string[] = [];
+    for (const leg of resolved) {
+      const prior = firstClaimFor.get(leg.ticker);
+      if (prior === undefined) firstClaimFor.set(leg.ticker, leg.claim);
+      else collisions.push(`${leg.ticker} was matched to both "${prior}" and "${leg.claim}"`);
+    }
+    if (collisions.length > 0) {
+      blockedReason = `${collisions.join("; ")}. Two conditions cannot settle on the same market, so at least one leg would be unhedged.`;
+    }
   }
 
   return { combinator, legs: resolved, unresolved, blockedReason, corpusMarkets: corpus.length };

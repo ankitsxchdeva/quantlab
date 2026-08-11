@@ -73,16 +73,25 @@ export function rsi(values: number[], period: number): Series {
   }
   avgGain /= period;
   avgLoss /= period;
-  out[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  out[period] = wilderRsi(avgGain, avgLoss);
   for (let i = period + 1; i < values.length; i++) {
     const ch = values[i] - values[i - 1];
     const gain = ch > 0 ? ch : 0;
     const loss = ch < 0 ? -ch : 0;
     avgGain = (avgGain * (period - 1) + gain) / period;
     avgLoss = (avgLoss * (period - 1) + loss) / period;
-    out[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    out[i] = wilderRsi(avgGain, avgLoss);
   }
   return out;
+}
+
+// No losses means 100, per Wilder. But no gains AND no losses -- a perfectly
+// flat window -- is neutral, not overbought: 0/0 is undefined, and calling it
+// 100 made "exit when RSI > 70" fire on any market sitting still, which
+// prediction markets routinely do for days at a time.
+function wilderRsi(avgGain: number, avgLoss: number): number {
+  if (avgLoss === 0) return avgGain === 0 ? 50 : 100;
+  return 100 - 100 / (1 + avgGain / avgLoss);
 }
 
 export interface MacdResult {

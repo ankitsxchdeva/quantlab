@@ -557,3 +557,84 @@ describe("runBacktest - short side", () => {
     expect(finalEq).toBeGreaterThan(10_000);
   });
 });
+
+// A fill scheduled for bar i+1's open must not be marked into bar i's equity.
+// Marking it there fabricated drawdowns the account never took and hid losses
+// it did take, and every equity-derived metric (max drawdown, Sharpe, Sortino)
+// inherited the error.
+describe("runBacktest - equity marks only what was actually held", () => {
+  function gapBars(rows: [number, number, number, number][]): Bar[] {
+    return rows.map(([o, h, l, c], i) => ({
+      time: i * 86_400_000,
+      open: o,
+      high: h,
+      low: l,
+      close: c,
+      volume: 1000,
+    }));
+  }
+
+  const alwaysIn = baseStrategy({
+    entries: [{ side: "long", when: { op: ">", left: { price: "close" }, right: 0 } }],
+    exits: [],
+  });
+
+  it("reports no drawdown for a bar the account was flat through", () => {
+    // Entry signal fires on bar 0; the fill is bar 1's open, which gaps up 50%.
+    // Bar 0 must still mark at a flat 10,000 -- nothing was owned during it.
+    const bars = gapBars([
+      [100, 100, 100, 100],
+      [150, 150, 150, 150],
+      [150, 150, 150, 150],
+    ]);
+    const r = runBacktest(alwaysIn, bars);
+
+    expect(r.equity[0].equity).toBeCloseTo(10_000, 6);
+    expect(r.equity[0].drawdown).toBeCloseTo(0, 9);
+    expect(r.metrics.maxDrawdownPct).toBeCloseTo(0, 6);
+  });
+
+  it("does not credit a gap that happened before the position was opened", () => {
+    // Symmetric case: a gap DOWN before entry must not show as a profit.
+    const bars = gapBars([
+      [100, 100, 100, 100],
+      [50, 50, 50, 50],
+      [50, 50, 50, 50],
+    ]);
+    const r = runBacktest(alwaysIn, bars);
+    expect(r.equity[0].equity).toBeCloseTo(10_000, 6);
+    for (const pt of r.equity) expect(pt.equity).toBeCloseTo(10_000, 6);
+  });
+
+  it("shows a gapped exit loss on the bar it is realized, not a bar early", () => {
+    // Long from bar 1's open at 100. Exit signal on bar 1 -> fills at bar 2's
+    // open of 50. Bar 1 still held the position at its close of 100, so it
+    // marks 10,000; the loss lands on bar 2.
+    const strat = baseStrategy({
+      entries: [{ side: "long", when: { op: "==", left: { price: "close" }, right: 100 } }],
+      exits: [{ when: { op: "==", left: { price: "open" }, right: 100 } }],
+    });
+    const bars = gapBars([
+      [100, 100, 100, 100],
+      [100, 100, 100, 100],
+      [50, 50, 50, 50],
+      [50, 50, 50, 50],
+    ]);
+    const r = runBacktest(strat, bars);
+
+    expect(r.equity[0].equity).toBeCloseTo(10_000, 6);
+    expect(r.equity[1].equity).toBeCloseTo(10_000, 6);
+    expect(r.equity[2].equity).toBeCloseTo(5_000, 6);
+  });
+
+  it("keeps equity consistent with cash once every position is closed", () => {
+    const bars = gapBars([
+      [100, 100, 100, 100],
+      [150, 150, 150, 150],
+      [90, 90, 90, 90],
+    ]);
+    const r = runBacktest(alwaysIn, bars);
+    const last = r.equity[r.equity.length - 1];
+    expect(last.equity).toBeCloseTo(r.metrics.finalEquity, 6);
+  });
+});

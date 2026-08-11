@@ -165,3 +165,42 @@ describe("resolveHandListedLegs", () => {
     ]);
   });
 });
+
+// Two distinct claims collapsing onto ONE market is not a resolution, it is a
+// missing leg wearing a match. `unresolved` stays empty, so nothing else in the
+// blocked-reason chain catches it, and evaluateParlay would price that one
+// market's hedge twice while the other condition rode completely unhedged.
+describe("resolveHandListedLegs - duplicate ticker matches", () => {
+  beforeEach(() => mockGenerate.mockReset());
+
+  it("blocks when two claims are matched to the same market", async () => {
+    mockGenerate
+      .mockResolvedValueOnce(claims("all") as never)
+      .mockResolvedValueOnce(matches(["KXMISEN-EL", "KXMISEN-EL"]) as never);
+
+    const r = await resolveHandListedLegs({
+      parlay,
+      events,
+      provider: "openai",
+      apiKey: "k",
+    });
+
+    expect(r.blockedReason).toMatch(/same market|duplicate/i);
+  });
+
+  it("still resolves cleanly when each claim maps to its own market", async () => {
+    mockGenerate
+      .mockResolvedValueOnce(claims("all") as never)
+      .mockResolvedValueOnce(matches(["KXMISEN-EL", "KXMNSEN-FL"]) as never);
+
+    const r = await resolveHandListedLegs({
+      parlay,
+      events,
+      provider: "openai",
+      apiKey: "k",
+    });
+
+    expect(r.blockedReason).toBeNull();
+    expect(r.legs).toHaveLength(2);
+  });
+});

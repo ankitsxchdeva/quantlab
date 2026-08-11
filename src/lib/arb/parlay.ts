@@ -1,5 +1,5 @@
 import type { KalshiLeg, KalshiMarket } from "@/lib/kalshi/client";
-import { DEFAULT_FEE_RATE, takerFeeCents } from "@/lib/kalshi/fees";
+import { DEFAULT_FEE_RATE, takerFeeCents, takerFeeCentsPerContract } from "@/lib/kalshi/fees";
 
 /**
  * Multi-leg (parlay) arbitrage pricing.
@@ -95,7 +95,7 @@ function breakeven(hedgeCents: number, hedgeFeeCents: number, rate: number): num
   let hi = 99.99;
   for (let i = 0; i < 60; i += 1) {
     const mid = (lo + hi) / 2;
-    const fee = rate * mid * (100 - mid);
+    const fee = takerFeeCentsPerContract(mid, rate);
     if (mid + hedgeCents + fee + hedgeFeeCents > 100) hi = mid;
     else lo = mid;
   }
@@ -152,7 +152,7 @@ export function evaluateParlay(
     priced.reduce((sum, l) => sum + takerFeeCents(l.askCents, maxSize, rate), 0);
   const feePerContract = totalFees / maxSize;
   const edge = 100 - cost - feePerContract;
-  const hedgeFee = priced.reduce((sum, l) => sum + rate * l.askCents * (100 - l.askCents), 0);
+  const hedgeFee = priced.reduce((sum, l) => sum + takerFeeCentsPerContract(l.askCents, rate), 0);
 
   return {
     ticker: parlay.ticker,

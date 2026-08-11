@@ -12,8 +12,14 @@ export const API_BASE_OVERRIDE_KEY = "quantlab.apiBase";
 
 export function apiBase(): string {
   if (typeof window !== "undefined") {
-    const override = window.localStorage.getItem(API_BASE_OVERRIDE_KEY);
-    if (override) return override.replace(/\/+$/, "");
+    try {
+      const override = window.localStorage.getItem(API_BASE_OVERRIDE_KEY);
+      if (override) return override.replace(/\/+$/, "");
+    } catch {
+      // Safari private mode and blocked-cookie settings throw on access rather
+      // than returning null. This runs on every request, so an unguarded read
+      // takes the whole app down instead of just losing the override.
+    }
   }
   return BAKED;
 }

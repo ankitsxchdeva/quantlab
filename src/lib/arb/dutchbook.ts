@@ -1,5 +1,11 @@
 import type { KalshiEvent, KalshiMarket } from "@/lib/kalshi/client";
-import { DEFAULT_FEE_RATE, makerFeeCents, takerFeeCents, type FeeType } from "@/lib/kalshi/fees";
+import {
+  DEFAULT_FEE_RATE,
+  makerFeeCents,
+  takerFeeCents,
+  takerFeeCentsPerContract,
+  type FeeType,
+} from "@/lib/kalshi/fees";
 
 /**
  * Dutch-book arbitrage across a mutually exclusive set of markets.
@@ -161,7 +167,7 @@ function buyTakerPricing(legs: DutchBookLeg[], rate: number): ExecutionPricing {
   // Buying lifts offers, so cost is the ask side and payout is the fixed $1.
   const cost = legs.reduce((s, l) => s + l.askCents, 0);
   // Size on the offer is not carried per-leg here; report cost-side edge only.
-  const fees = legs.reduce((s, l) => s + rate * l.askCents * (100 - l.askCents), 0);
+  const fees = legs.reduce((s, l) => s + takerFeeCentsPerContract(l.askCents, rate), 0);
   return { grossCents: cost, feeCents: fees, edgeCents: 100 - cost - fees, maxSize: null };
 }
 

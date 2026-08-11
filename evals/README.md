@@ -27,7 +27,7 @@ EVAL_OPENAI_KEY=sk-... npx vitest run --config vitest.evals.config.ts
 Provide any subset of:
 
 - `EVAL_OPENAI_KEY` (optional `EVAL_OPENAI_MODEL`, default gpt-4o-mini)
-- `EVAL_ANTHROPIC_KEY` (optional `EVAL_ANTHROPIC_MODEL`, default claude-sonnet-4-6)
+- `EVAL_ANTHROPIC_KEY` (optional `EVAL_ANTHROPIC_MODEL`, default claude-sonnet-5)
 - `EVAL_GOOGLE_KEY` (optional `EVAL_GOOGLE_MODEL`, default gemini-2.0-flash)
 
 Providers without a key are skipped. With no keys at all the whole suite skips cleanly, so it is safe to keep in the repo and out of CI's way (`vitest.evals.config.ts` only includes `evals/`, and the main `vitest.config.ts` only includes `src/`, so neither run picks up the other).
