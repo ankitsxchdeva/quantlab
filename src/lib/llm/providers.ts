@@ -6,7 +6,7 @@ import type { LLMProvider } from "@/lib/types";
 
 export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   openai: "gpt-4o-mini",
-  anthropic: "claude-sonnet-4-6",
+  anthropic: "claude-sonnet-5",
   google: "gemini-2.0-flash",
 };
 
