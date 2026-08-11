@@ -59,6 +59,30 @@ describe("RSI", () => {
       }
     }
   });
+
+  // A flat series has no gains AND no losses, which is neutral, not overbought.
+  // Returning 100 here made "exit when RSI > 70" fire on any market that sits
+  // still -- routine on prediction markets, which trade flat for days.
+  it("is neutral (50) on a perfectly flat series", () => {
+    const out = rsi(new Array(30).fill(50), 14);
+    expect(out[14]).toBe(50);
+    expect(out[29]).toBe(50);
+  });
+
+  // Wilder's convention still holds when there genuinely are no losses.
+  it("stays 100 when the series only ever rises", () => {
+    const out = rsi(Array.from({ length: 30 }, (_, i) => 10 + i), 14);
+    expect(out[29]).toBe(100);
+  });
+
+  // Wilder's smoothing drives avgLoss to exactly 0 and it can never recover, so
+  // a risen-then-flat series stays pinned at 100. That matches ta-lib and
+  // TradingView; only the both-sides-zero case is treated as neutral.
+  it("keeps Wilder's pinned 100 after a monotonic rise flattens", () => {
+    const vals = [...Array.from({ length: 20 }, (_, i) => 10 + i), ...new Array(30).fill(29)];
+    const out = rsi(vals, 14);
+    expect(out[49]).toBe(100);
+  });
 });
 
 describe("MACD", () => {
