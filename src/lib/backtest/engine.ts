@@ -161,6 +161,10 @@ export function runBacktest(strategy: Strategy, bars: Bar[], market: MarketResol
     // up, so conditions like "not (indicator > x)" cannot fire on null values.
     const signalsReady = i + 1 >= warmup;
 
+    // Set when this bar's close signals an exit. The fill is the NEXT bar's
+    // open, so it is deliberately not acted on until after this bar is marked.
+    let exitSignalled = false;
+
     if (pos) {
       barsInMarket++;
       if (pos.side === "short" && borrowPerBar > 0) {
@@ -202,30 +206,40 @@ export function runBacktest(strategy: Strategy, bars: Bar[], market: MarketResol
         }
         const maxBars = strategy.risk.maxBarsInTrade;
         const hitMaxBars = maxBars !== undefined && i - pos.entryBarIdx >= maxBars;
-
-        if (exitSignal || hitMaxBars) {
-          if (isLast) {
-            closePosition(bar.close, bar.time, "end_of_data");
-          } else {
-            const next = bars[i + 1];
-            closePosition(next.open, next.time, "signal");
-          }
-        }
+        exitSignalled = exitSignal || hitMaxBars;
       }
     }
 
-    if (!pos && !isLast && signalsReady) {
+    // Mark the bar against the position actually held THROUGH it. Stops and
+    // targets above fill inside this bar, so they belong here; signalled
+    // entries and exits fill at the next bar's open and must not be. Marking
+    // those here let a gap between this close and the next open leak in as
+    // phantom profit or a drawdown the account never took, and every
+    // equity-derived metric picked the error up.
+    const marked = markToMarket(cash, pos, bar.close);
+    if (marked > peak) peak = marked;
+    const dd = peak > 0 ? (peak - marked) / peak : 0;
+    equity.push({ time: bar.time, equity: marked, drawdown: dd });
+
+    // Nothing fills after the final bar; any still-open position is closed
+    // below at that bar's close.
+    if (isLast) continue;
+    const next = bars[i + 1];
+
+    if (pos && exitSignalled) {
+      closePosition(next.open, next.time, "signal");
+    }
+
+    if (!pos && signalsReady) {
       for (const rule of strategy.entries) {
         if (rule.side === "short" && !strategy.allowShort) continue;
         if (evalCondition(rule.when, i, ctx)) {
-          const next = bars[i + 1];
-          const eq = markToMarket(cash, null, bar.close);
           const rawEntry = next.open;
           const { pos: newPos, cashDelta, commission } = applyEntry(
             rule,
             next,
             applySlippage(rawEntry, rule.side, "entry", slip),
-            eq,
+            cash,
             strategy.risk.positionSizePct,
             strategy.risk.stopLossPct,
             strategy.risk.takeProfitPct,
@@ -239,11 +253,6 @@ export function runBacktest(strategy: Strategy, bars: Bar[], market: MarketResol
         }
       }
     }
-
-    const eq = markToMarket(cash, pos, bar.close);
-    if (eq > peak) peak = eq;
-    const dd = peak > 0 ? (peak - eq) / peak : 0;
-    equity.push({ time: bar.time, equity: eq, drawdown: dd });
   }
 
   if (pos) {
