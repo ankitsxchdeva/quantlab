@@ -3,6 +3,7 @@ import { z } from "zod";
 import { checkHandListedParlay, checkParlay, scanForArbitrage } from "@/lib/arb/scan";
 import { scanConstraints } from "@/lib/arb/constraints";
 import { preflight, withCors } from "@/lib/cors";
+import { clientIp, createRateLimiter } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,21 +42,8 @@ const RequestSchema = z.discriminatedUnion("mode", [
 
 const RATE_LIMIT = 6;
 const RATE_WINDOW_MS = 60_000;
-const rateBuckets = new Map<string, number[]>();
 
-function clientIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "local";
-}
-
-function isRateLimited(ip: string, now: number): boolean {
-  const times = (rateBuckets.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  const limited = times.length >= RATE_LIMIT;
-  if (!limited) times.push(now);
-  rateBuckets.set(ip, times);
-  return limited;
-}
+const limiter = createRateLimiter(RATE_LIMIT, RATE_WINDOW_MS);
 
 export function OPTIONS(req: Request): NextResponse {
   return preflight(req);
@@ -67,7 +55,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
 async function handleArb(req: Request): Promise<NextResponse> {
   const now = Date.now();
-  if (isRateLimited(clientIp(req), now)) {
+  if (limiter.isLimited(clientIp(req), now)) {
     return NextResponse.json(
       { error: "Too many scans. The exchange crawl is heavy; try again in a minute." },
       { status: 429 },

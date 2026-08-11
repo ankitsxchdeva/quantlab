@@ -7,6 +7,7 @@ import { runBacktest } from "@/lib/backtest/engine";
 import { assessRobustness, type RobustnessReport } from "@/lib/backtest/robustness";
 import { runMonteCarlo } from "@/lib/backtest/montecarlo";
 import { preflight, withCors } from "@/lib/cors";
+import { clientIp, createRateLimiter } from "@/lib/ratelimit";
 import type { LLMProvider } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -23,32 +24,7 @@ const RequestSchema = z.object({
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
 
-// Per-instance in-memory limiter. For multi-instance deploys, swap this Map
-// for a shared store (Redis / Upstash) keyed the same way.
-const rateBuckets = new Map<string, number[]>();
-let lastSweep = 0;
-
-function clientIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "local";
-}
-
-function isRateLimited(ip: string, now: number): boolean {
-  if (now - lastSweep > RATE_WINDOW_MS) {
-    lastSweep = now;
-    for (const [key, times] of rateBuckets) {
-      const fresh = times.filter((t) => now - t < RATE_WINDOW_MS);
-      if (fresh.length === 0) rateBuckets.delete(key);
-      else rateBuckets.set(key, fresh);
-    }
-  }
-  const times = (rateBuckets.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  const limited = times.length >= RATE_LIMIT;
-  if (!limited) times.push(now);
-  rateBuckets.set(ip, times);
-  return limited;
-}
+const limiter = createRateLimiter(RATE_LIMIT, RATE_WINDOW_MS);
 
 interface Timings {
   compileMs: number;
@@ -76,7 +52,7 @@ async function handleRun(req: Request): Promise<NextResponse> {
     console.log(JSON.stringify({ msg: "api/run", requestId, ip, status, timings, ...extra }));
   };
 
-  if (isRateLimited(ip, Date.now())) {
+  if (limiter.isLimited(ip, Date.now())) {
     log(429, { error: "rate_limited" });
     return NextResponse.json(
       { error: `Too many runs from this address. The limit is ${RATE_LIMIT} per minute; please wait a moment and try again.` },
