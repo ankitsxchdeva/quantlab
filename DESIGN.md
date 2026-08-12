@@ -16,30 +16,31 @@ OKLCH ramp (dark mode):
 
 | Token | OKLCH | Hex (≈) | Use |
 |---|---|---|---|
-| `--surface-0` | `oklch(0.16 0.005 80)` | `#1a1814` | App background |
-| `--surface-1` | `oklch(0.20 0.006 80)` | `#221f1a` | Panels |
-| `--surface-2` | `oklch(0.24 0.006 80)` | `#2a2620` | Hover, raised |
-| `--border` | `oklch(0.30 0.006 80)` | `#36312a` | Hairlines |
-| `--border-strong` | `oklch(0.40 0.008 80)` | `#4d473e` | Active borders |
-| `--text-1` | `oklch(0.96 0.006 80)` | `#f5f1ea` | Primary text |
-| `--text-2` | `oklch(0.72 0.008 80)` | `#a9a298` | Secondary text |
-| `--text-3` | `oklch(0.52 0.008 80)` | `#787268` | Tertiary, muted |
+| `--surface-0` | `oklch(0.16 0.005 80)` | `#121110` | App background |
+| `--surface-1` | `oklch(0.20 0.006 80)` | `#171613` | Panels |
+| `--surface-2` | `oklch(0.24 0.006 80)` | `#211f1c` | Hover, raised |
+| `--border` | `oklch(0.30 0.006 80)` | `#2f2d2a` | Hairlines |
+| `--border-strong` | `oklch(0.40 0.008 80)` | `#464340` | Active borders |
+| `--text-1` | `oklch(0.96 0.006 80)` | `#f4f1ed` | Primary text |
+| `--text-2` | `oklch(0.72 0.008 80)` | `#a7a49f` | Secondary text |
+| `--text-3` | `oklch(0.52 0.008 80)` | `#6b6864` | Tertiary, muted |
 
 Semantic:
 
 | Token | OKLCH | Hex (≈) | Use |
 |---|---|---|---|
-| `--accent` | `oklch(0.72 0.16 145)` | `#3ec27a` | Primary action, positive outcomes |
+| `--accent` | `oklch(0.78 0.16 145)` | `#6ed274` | Primary action, positive outcomes |
 | `--accent-soft` | `oklch(0.30 0.06 145)` | `#1d3a26` | Accent backgrounds |
-| `--danger` | `oklch(0.65 0.20 25)` | `#e26241` | Losses, errors, stops |
-| `--warning` | `oklch(0.78 0.13 75)` | `#d9a85a` | Warnings, drawdowns |
-| `--info` | `oklch(0.70 0.10 240)` | `#6592c4` | Informational, links |
+| `--danger` | `oklch(0.68 0.20 25)` | `#fc5855` | Losses, errors, stops |
+| `--warning` | `oklch(0.80 0.13 75)` | `#eeb154` | Warnings, drawdowns |
+| `--info` | `oklch(0.72 0.10 240)` | `#67addd` | Informational, links |
+| `--chart-benchmark` | `oklch(0.60 0.008 80)` | `#8b8680` | Benchmark series on the equity chart |
 
 Accent is reserved: primary CTAs, positive return numbers, the resolved "current" tab. Decoration uses tinted neutrals.
 
 ## Typography
 
-One family: **Geist** (variable). Mono pairing: **JetBrains Mono** for numbers, tickers, and code-shaped content. System fallback always: `system-ui, -apple-system, "Segoe UI", sans-serif`.
+One family: **Geist** (variable). Mono pairing: **Geist Mono** for numbers, tickers, and code-shaped content. System fallback always: `system-ui, -apple-system, "Segoe UI", sans-serif`.
 
 Fixed rem scale, 1.2 ratio:
 
@@ -56,6 +57,8 @@ Fixed rem scale, 1.2 ratio:
 
 Weights: 400 (body), 500 (UI default), 600 (emphasis), 700 (hero only).
 
+Charts render to canvas and cannot read CSS variables, so they resolve tokens at runtime through `src/lib/chartTheme.ts`. Never hardcode a hex in a chart component; that is how the chart palette drifted from the UI palette once already.
+
 Numbers are always `font-mono`, `tabular-nums`. Dollar amounts in the headline are also mono, slightly larger weight (500).
 
 Tracking:
@@ -71,6 +74,7 @@ Line height: 1.5 body, 1.2 display, 1.0 single-line numerics.
 - Vertical rhythm: 1.25rem / 2rem / 3rem (between sections, in increasing structural weight).
 - Side padding: 1.25rem mobile, 2rem tablet, 2.5rem desktop.
 - Panels: 1px hairline, no shadows by default. Raised state uses `surface-2` background, not shadow.
+- Overlays are the one exception. Popovers and tooltips float above the flow, so they use `.panel-overlay`: `surface-2` plus a shadow tinted toward the surface hue. An untinted black shadow reads as a hole punched in a warm-neutral UI.
 - Avoid identical card grids. The features row uses 3 different sizes/treatments, not 3 identical icon-cards.
 
 ## Components
