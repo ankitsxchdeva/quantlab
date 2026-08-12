@@ -19,6 +19,13 @@
   --danger-soft: oklch(0.30 0.08 25);
   --warning: oklch(0.80 0.13 75);
   --info: oklch(0.72 0.10 240);
+  /*
+   * The benchmark series on the equity chart. Its own role rather than a reuse:
+   * it has to sit clearly below the strategy line it is being compared against,
+   * while staying brighter than the axis labels behind it. That lands between
+   * --text-2 and --text-3, where no existing token sits.
+   */
+  --chart-benchmark: oklch(0.6 0.008 80);
   --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   color-scheme: dark;
@@ -66,6 +73,24 @@
     background-color: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 10px;
+  }
+
+  /*
+   * Popovers and tooltips, which float above the flow rather than sitting in
+   * it. Panels in the flow stay flat by design; an overlay needs depth or it
+   * reads as a rendering bug rather than a layer.
+   *
+   * The shadow is tinted toward the surface hue (80) instead of Tailwind's
+   * untinted black. On a warm-neutral UI a pure-black shadow reads as a hole
+   * punched in the page rather than the element lifting off it.
+   */
+  .panel-overlay {
+    background-color: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow:
+      0 12px 32px -8px oklch(0.1 0.01 80 / 0.55),
+      0 2px 8px -3px oklch(0.1 0.01 80 / 0.45);
   }
 
   .hairline {

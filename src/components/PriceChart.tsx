@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Bar, Trade } from "@/lib/types";
+import { chartTheme } from "@/lib/chartTheme";
 
 interface PriceChartProps {
   bars: Bar[];
@@ -10,12 +11,6 @@ interface PriceChartProps {
   timeframe?: string;
   height?: number;
 }
-
-const ACCENT = "#3ec27a";
-const WARNING = "#d9a85a";
-const TEXT_2 = "#a9a298";
-const BORDER = "#36312a";
-const SURFACE_1 = "#221f1a";
 
 export default function PriceChart({ bars, trades, symbol, timeframe, height = 360 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -30,6 +25,11 @@ export default function PriceChart({ bars, trades, symbol, timeframe, height = 3
     void (async () => {
       const mod = await import("lightweight-charts");
       if (disposed || !containerRef.current) return;
+
+      // Resolved here rather than at module scope: the tokens only exist
+      // once the document has a computed style.
+      const { accent: ACCENT, warning: WARNING, text2: TEXT_2, border: BORDER, surface1: SURFACE_1 } =
+        chartTheme();
 
       const chart = mod.createChart(container, {
         width: container.clientWidth,

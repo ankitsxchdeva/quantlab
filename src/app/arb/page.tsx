@@ -399,7 +399,7 @@ export default function ArbPage() {
                 role="dialog"
                 aria-label="How it works"
                 onClick={() => setHowOpen(false)}
-                className="absolute right-0 top-10 z-40 panel-raised px-4 py-4 w-[min(26rem,92vw)] animate-fade-in shadow-lg"
+                className="absolute right-0 top-10 z-40 panel-overlay px-4 py-4 w-[min(26rem,92vw)] animate-fade-in"
               >
                 <div className="micro-label mb-2">How it works</div>
                 <ol className="space-y-2.5 text-sm text-text-2">
@@ -478,13 +478,13 @@ export default function ArbPage() {
         <section className="panel p-4 space-y-4">
           <div>
             <div className="micro-label mb-2">Check one parlay</div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <input
                 value={ticker}
                 onChange={(e) => setTicker(e.target.value)}
                 spellCheck={false}
                 aria-label="Parlay ticker"
-                className="flex-1 h-9 px-3 rounded-md bg-surface-1 border border-border text-sm font-mono text-text-1 focus:outline-none focus:border-border-strong"
+                className="input flex-1 font-mono text-sm"
                 placeholder={TICKER_PLACEHOLDER}
               />
               <button
@@ -506,13 +506,13 @@ export default function ArbPage() {
               <span className="text-xs text-text-3">
                 {hasKey
                   ? "For hand-listed parlays that state their legs in rules text only."
-                  : "Needs an LLM key — paste one in Settings."}
+                  : "Needs an LLM key. Paste one in Settings."}
               </span>
             </div>
             <p className="mt-2 text-xs text-text-3 leading-relaxed">
               MVE parlays publish their legs as structured data and price directly. Hand-listed
               ones like <span className="font-mono">KXPROGSWEEP</span> describe them in prose,
-              so recovering the legs takes a model — which proposes the mapping while the
+              so recovering the legs takes a model, which proposes the mapping while the
               pricing stays deterministic.
             </p>
           </div>
@@ -540,7 +540,7 @@ export default function ArbPage() {
             </div>
             <p className="mt-2 text-xs text-text-3 leading-relaxed">
               Constraints looks at mutually exclusive events instead of parlays. At most one leg
-              can pay, so selling every leg for more than $1 is risk-free — no view on the
+              can pay, so selling every leg for more than $1 is risk-free. No view on the
               subject required.
             </p>
           </div>
@@ -595,7 +595,7 @@ export default function ArbPage() {
                   Expected. Selling every leg pays the quadratic fee once per leg, and the gross
                   edges these sets throw off run a few cents while the fees run many more. The
                   results below clear only as resting orders, which means they are not
-                  arbitrage — they require every leg to fill.
+                  arbitrage: they require every leg to fill.
                 </p>
               </div>
             )}

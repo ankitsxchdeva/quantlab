@@ -21,6 +21,7 @@ const config: Config = {
         "danger-soft": "var(--danger-soft)",
         warning: "var(--warning)",
         info: "var(--info)",
+        "chart-benchmark": "var(--chart-benchmark)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],

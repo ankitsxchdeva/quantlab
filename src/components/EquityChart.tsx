@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { BenchmarkResult, EquityPoint } from "@/lib/types";
 import type { MonteCarloBandPoint } from "@/lib/backtest/montecarlo";
+import { chartTheme, withAlpha } from "@/lib/chartTheme";
 
 interface EquityChartProps {
   equity: EquityPoint[];
@@ -11,15 +12,6 @@ interface EquityChartProps {
   height?: number;
 }
 
-const ACCENT = "#3ec27a";
-const ACCENT_FILL_TOP = "rgba(62, 194, 122, 0.32)";
-const ACCENT_FILL_BOTTOM = "rgba(62, 194, 122, 0.02)";
-const FAN_FILL = "rgba(62, 194, 122, 0.10)";
-const FAN_EDGE = "rgba(62, 194, 122, 0.28)";
-const NEUTRAL_LINE = "#857d72";
-const TEXT_2 = "#a9a298";
-const BORDER = "#36312a";
-const SURFACE_1 = "#221f1a";
 
 export default function EquityChart({ equity, benchmark, bands, height = 280 }: EquityChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -34,6 +26,22 @@ export default function EquityChart({ equity, benchmark, bands, height = 280 }: 
     void (async () => {
       const mod = await import("lightweight-charts");
       if (disposed || !containerRef.current) return;
+
+      // Resolved here rather than at module scope: the tokens only exist
+      // once the document has a computed style.
+      const {
+        accent: ACCENT,
+        benchmark: NEUTRAL_LINE,
+        text2: TEXT_2,
+        border: BORDER,
+        surface1: SURFACE_1,
+      } = chartTheme();
+
+      // Tints of the accent, so they follow it instead of drifting.
+      const ACCENT_FILL_TOP = withAlpha(ACCENT, 0.32);
+      const ACCENT_FILL_BOTTOM = withAlpha(ACCENT, 0.02);
+      const FAN_FILL = withAlpha(ACCENT, 0.1);
+      const FAN_EDGE = withAlpha(ACCENT, 0.28);
 
       const chart = mod.createChart(container, {
         width: container.clientWidth,
@@ -159,14 +167,21 @@ export default function EquityChart({ equity, benchmark, bands, height = 280 }: 
           </span>
           {benchmark && benchmark.equity.length > 0 && (
             <span className="flex items-center gap-1.5 text-text-3">
-              <span className="inline-block w-2.5 h-[1.5px] rounded-full bg-text-3" aria-hidden="true" /> Buy &amp; hold
+              {/* Same token the series is drawn with, so the key matches the line. */}
+              <span className="inline-block w-2.5 h-[1.5px] rounded-full bg-chart-benchmark" aria-hidden="true" /> Buy
+              &amp; hold
             </span>
           )}
           {bands && bands.length > 1 && (
             <span className="flex items-center gap-1.5 text-text-3">
+              {/* This swatch is DOM, not canvas, so it reads the token directly
+                  at the same alphas the fan is painted with. */}
               <span
                 className="inline-block w-2.5 h-2.5 rounded-[3px]"
-                style={{ backgroundColor: FAN_FILL, border: `1px solid ${FAN_EDGE}` }}
+                style={{
+                  backgroundColor: "color-mix(in oklch, var(--accent) 10%, transparent)",
+                  border: "1px solid color-mix(in oklch, var(--accent) 28%, transparent)",
+                }}
                 aria-hidden="true"
               />{" "}
               Monte Carlo 5-95%

@@ -284,7 +284,7 @@ export default function Page() {
                 role="dialog"
                 aria-label="How it works"
                 onClick={() => setHowOpen(false)}
-                className="absolute right-0 top-10 z-40 panel-raised px-4 py-4 w-[min(26rem,92vw)] animate-fade-in shadow-lg"
+                className="absolute right-0 top-10 z-40 panel-overlay px-4 py-4 w-[min(26rem,92vw)] animate-fade-in"
               >
                 <div className="micro-label mb-2">How it works</div>
                 <ol className="space-y-2.5 text-sm text-text-2">

@@ -31,7 +31,19 @@ function InfoIcon() {
   );
 }
 
-function MetricCell({ cell, openId, setOpenId, id }: { cell: Cell; openId: string | null; setOpenId: Dispatch<SetStateAction<string | null>>; id: string }) {
+function MetricCell({
+  cell,
+  openId,
+  setOpenId,
+  id,
+  rank,
+}: {
+  cell: Cell;
+  openId: string | null;
+  setOpenId: Dispatch<SetStateAction<string | null>>;
+  id: string;
+  rank: "primary" | "supporting";
+}) {
   const open = openId === id;
   return (
     <div className="relative">
@@ -51,7 +63,11 @@ function MetricCell({ cell, openId, setOpenId, id }: { cell: Cell; openId: strin
       </div>
       <div
         className={cn(
-          "mt-2 text-xl sm:text-2xl font-mono tabular-nums",
+          "font-mono tabular-nums",
+          // 2.25rem against 1.125rem. The verdict metrics have to win the
+          // glance; a flat scale across all twelve makes the reader do the
+          // ranking work themselves.
+          rank === "primary" ? "mt-2.5 text-2xl sm:text-3xl" : "mt-2 text-base sm:text-lg",
           cell.tone === "pos" && "text-accent",
           cell.tone === "neg" && "text-warning",
           (!cell.tone || cell.tone === "neutral") && "text-text-1",
@@ -63,7 +79,7 @@ function MetricCell({ cell, openId, setOpenId, id }: { cell: Cell; openId: strin
       {open && (
         <div
           role="tooltip"
-          className="absolute z-20 top-full mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[260px] sm:max-w-[300px] panel-raised px-3 py-2.5 text-xs text-text-2 leading-relaxed animate-fade-in shadow-lg"
+          className="absolute z-20 top-full mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[260px] sm:max-w-[300px] panel-overlay px-3 py-2.5 text-xs text-text-2 leading-relaxed animate-fade-in"
         >
           {cell.tooltip}
         </div>
@@ -95,7 +111,9 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
     };
   }, [openId]);
 
-  const cells: Cell[] = [
+  // The four that answer "did this work, and could I have lived through it".
+  // Everything else explains or qualifies them.
+  const primary: Cell[] = [
     {
       label: "Total return",
       value: fmtPct(metrics.totalReturnPct),
@@ -115,16 +133,19 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
       tooltip: "Return per unit of volatility. Above 1 is decent, above 2 is good, above 3 is rare. Negative means the equity curve was a roller coaster going the wrong way.",
     },
     {
-      label: "Sortino",
-      value: fmtNum(metrics.sortino, 2),
-      tone: toneFromSign(metrics.sortino),
-      tooltip: "Like Sharpe, but only downside volatility counts against you; upside swings are free. Usually higher than Sharpe for the same strategy.",
-    },
-    {
       label: "Max drawdown",
       value: fmtPct(-Math.abs(metrics.maxDrawdownPct)),
       tone: metrics.maxDrawdownPct > 0 ? "neg" : "neutral",
       tooltip: "The deepest peak-to-trough loss the strategy ever sat through. The pain you'd need to stomach to actually run it.",
+    },
+  ];
+
+  const supporting: Cell[] = [
+    {
+      label: "Sortino",
+      value: fmtNum(metrics.sortino, 2),
+      tone: toneFromSign(metrics.sortino),
+      tooltip: "Like Sharpe, but only downside volatility counts against you; upside swings are free. Usually higher than Sharpe for the same strategy.",
     },
     {
       label: "Win rate",
@@ -171,26 +192,43 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
     },
   ];
 
-  // 12 cells over 2 (base), 3 (sm), and 6 (lg) columns; every count divides
-  // 12, so the border rules stay pure index math at each breakpoint: a left
-  // border unless first in row, a top border unless in the first row.
+  // Both grids use column counts that divide their cell count exactly, so the
+  // rules stay pure index math at every breakpoint: a left border unless first
+  // in the row, a top border unless in the first row. The primary row also
+  // carries more padding, so the hierarchy reads in the spacing as well as the
+  // type scale.
   return (
     <section ref={sectionRef} className="panel overflow-visible">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-        {cells.map((c, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4">
+        {primary.map((c, i) => (
           <div
             key={c.label}
             className={cn(
-              "px-4 py-4 sm:px-5 sm:py-5 relative border-border",
+              "px-4 py-5 sm:px-6 sm:py-6 relative border-border",
               i % 2 !== 0 ? "border-l" : "border-l-0",
-              i % 3 !== 0 ? "sm:border-l" : "sm:border-l-0",
-              i % 6 !== 0 ? "lg:border-l" : "lg:border-l-0",
+              i % 4 !== 0 ? "lg:border-l" : "lg:border-l-0",
               i >= 2 ? "border-t" : "border-t-0",
-              i >= 3 ? "sm:border-t" : "sm:border-t-0",
-              i >= 6 ? "lg:border-t" : "lg:border-t-0",
+              "lg:border-t-0",
             )}
           >
-            <MetricCell cell={c} openId={openId} setOpenId={setOpenId} id={`m-${i}`} />
+            <MetricCell cell={c} openId={openId} setOpenId={setOpenId} id={`m-p${i}`} rank="primary" />
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
+        {supporting.map((c, i) => (
+          <div
+            key={c.label}
+            className={cn(
+              "px-4 py-4 sm:px-5 relative border-border",
+              i % 2 !== 0 ? "border-l" : "border-l-0",
+              i % 4 !== 0 ? "sm:border-l" : "sm:border-l-0",
+              i >= 2 ? "border-t" : "border-t-0",
+              i >= 4 ? "sm:border-t" : "sm:border-t-0",
+            )}
+          >
+            <MetricCell cell={c} openId={openId} setOpenId={setOpenId} id={`m-s${i}`} rank="supporting" />
           </div>
         ))}
       </div>
