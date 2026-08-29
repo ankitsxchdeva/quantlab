@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { LLMProvider } from "@/lib/types";
+import { ArrowSquareOut, Eye, EyeSlash, Lock } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 export interface LLMSettings {
@@ -38,40 +39,6 @@ const KEY_URLS: Record<LLMProvider, string> = {
   google: "https://aistudio.google.com/app/apikey",
   ollama: "https://ollama.com",
 };
-
-function LockIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0110 0v4" />
-    </svg>
-  );
-}
-
-function EyeIcon({ on }: { on: boolean }) {
-  return on ? (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
-      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  ) : (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function ExternalLinkIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M15 3h6v6" />
-      <path d="M10 14L21 3" />
-      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-    </svg>
-  );
-}
 
 export default function SettingsPanel({ open, onClose, settings, onChange }: SettingsPanelProps) {
   const [local, setLocal] = useState<LLMSettings>(settings);
@@ -122,7 +89,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
             <h2 className="text-base font-medium text-text-1">Provider settings</h2>
-            <p className="text-xs text-text-3 mt-0.5">Local model by default — or bring your own key.</p>
+            <p className="text-xs text-text-3 mt-0.5">Demo by default. Bring your own key for the hosted providers.</p>
           </div>
           <button onClick={onClose} className="btn btn-ghost text-sm" aria-label="Close settings">
             Close
@@ -153,7 +120,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
 
           {local.provider === "ollama" ? (
             <p className="text-sm text-text-2">
-              Runs a couple requests on my local model (27B GPU) — no API key needed.
+              Runs a couple requests on my local model (27B GPU). No API key needed.
               Rate limited, so short waits between runs are normal.
             </p>
           ) : (
@@ -162,7 +129,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="apiKey" className="micro-label">API key</label>
                 <span className="inline-flex items-center gap-1.5 text-xs text-text-3">
-                <LockIcon />
+                <Lock size={12} />
                 <span>Stored only in this browser.</span>
               </span>
             </div>
@@ -183,7 +150,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded text-text-3 hover:text-text-1 hover:bg-surface-2 transition-colors duration-120 ease-out"
                 aria-label={showKey ? "Hide key" : "Show key"}
               >
-                <EyeIcon on={showKey} />
+                {showKey ? <EyeSlash size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <div className="mt-2.5 flex items-center justify-between">
@@ -194,7 +161,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
                 className="inline-flex items-center gap-1 text-xs text-info hover:underline"
               >
                 Don&apos;t have one? Get one
-                <ExternalLinkIcon />
+                <ArrowSquareOut size={11} />
               </a>
               <span className="text-xs text-text-3">Never persisted on our servers.</span>
             </div>

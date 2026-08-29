@@ -99,21 +99,21 @@ async function handleRun(req: Request): Promise<NextResponse> {
     if (ollamaGlobalLimiter.isLimited("global", Date.now())) {
       log(429, { error: "local_global_capped" });
       return NextResponse.json(
-        { error: "The local model has reached its hourly limit. Try again later — or open Settings and use your own provider key (OpenAI, Anthropic, or Google)." },
+        { error: "The local model has reached its hourly limit. Try again later, or open Settings and use your own provider key (OpenAI, Anthropic, or Google)." },
         { status: 429 },
       );
     }
     if (ollamaLimiter.isLimited(ip, Date.now())) {
       log(429, { error: "local_rate_limited" });
       return NextResponse.json(
-        { error: `Too many local-model runs from this address. The limit is ${OLLAMA_RATE_LIMIT} per minute — open Settings and use your own provider key for unlimited runs.` },
+        { error: `Too many local-model runs from this address. The limit is ${OLLAMA_RATE_LIMIT} per minute. Open Settings and use your own provider key for unlimited runs.` },
         { status: 429 },
       );
     }
     if (ollamaInFlight >= OLLAMA_MAX_CONCURRENT) {
       log(429, { error: "local_model_busy" });
       return NextResponse.json(
-        { error: "The local model is busy with another run — try again in a few seconds, or use your own provider key in Settings." },
+        { error: "The local model is busy with another run. Try again in a few seconds, or use your own provider key in Settings." },
         { status: 429 },
       );
     }

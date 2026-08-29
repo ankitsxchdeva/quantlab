@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight, Gear, GithubLogo } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import SettingsPanel, { type LLMSettings } from "@/components/SettingsPanel";
 import { apiUrl } from "@/lib/apiBase";
@@ -151,24 +152,6 @@ function MiniEquitySVG() {
   );
 }
 
-function CogIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
 export default function Page() {
   const [hydrated, setHydrated] = useState(false);
   const [settings, setSettings] = useState<LLMSettings>(DEFAULT_SETTINGS);
@@ -294,7 +277,7 @@ export default function Page() {
                 <ol className="space-y-2.5 text-sm text-text-2">
                   <li className="flex gap-2.5">
                     <span className="font-mono text-text-3 shrink-0 mt-0.5">1.</span>
-                    <span><span className="text-text-1">Describe an idea</span> in plain English. It goes to the selected LLM — the free demo model by default, no API key needed.</span>
+                    <span><span className="text-text-1">Describe an idea</span> in plain English. It goes to the selected LLM. The free demo model by default, no API key needed.</span>
                   </li>
                   <li className="flex gap-2.5">
                     <span className="font-mono text-text-3 shrink-0 mt-0.5">2.</span>
@@ -314,15 +297,24 @@ export default function Page() {
                 </p>
               </div>
             )}
+            <a
+              href="https://github.com/ankitsxchdeva/quantlab"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Source on GitHub"
+              className="btn btn-ghost h-8 w-8 inline-flex items-center justify-center"
+            >
+              <GithubLogo size={16} />
+            </a>
             <button
               onClick={() => setSettingsOpen(true)}
               aria-label="Open provider settings"
               className="btn btn-secondary h-8 px-2.5 text-xs flex items-center gap-1.5"
             >
-              <CogIcon />
+              <Gear size={14} weight="bold" />
               <span className="hidden sm:inline">Settings</span>
-              {hydrated && !hasKey && (
-                <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-danger animate-pulse-soft" aria-label="API key required" />
+              {hydrated && !isLocal && !hasKey && (
+                <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-danger animate-pulse-soft" aria-label="API key required for this provider" />
               )}
             </button>
           </div>
@@ -351,20 +343,10 @@ export default function Page() {
                     className="btn btn-secondary text-sm h-9"
                   >
                     <span>See an example backtest</span>
-                    <ArrowIcon />
+                    <ArrowRight size={12} weight="bold" />
                   </button>
                   <span className="text-xs text-text-3 hidden sm:inline">No key required.</span>
                 </div>
-
-                <ol className="mt-8 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 text-xs text-text-3 font-mono">
-                  {["Describe an idea", "Compile to rules", "Pull real history", "Simulate every trade"].map((step, i, arr) => (
-                    <li key={step} className="flex items-baseline gap-2">
-                      <span className="text-text-2">{i + 1}.</span>
-                      <span>{step}</span>
-                      {i < arr.length - 1 && <span className="text-text-3 ml-2 hidden sm:inline" aria-hidden="true">→</span>}
-                    </li>
-                  ))}
-                </ol>
               </div>
 
               <div className="hidden lg:block h-[112px] opacity-80">
@@ -503,19 +485,20 @@ export default function Page() {
               Backtests model what would have happened, not what will. Use this to learn, not to invest. Indicators and metrics are computed from the rules you describe and the price history we fetch. Nothing here is investment advice.
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
-                Your API key never leaves your browser
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-info" aria-hidden="true" />
-                No accounts, no tracking, no upsells
-              </span>
+              <span>API keys never leave your browser</span>
+              <span>No accounts, no tracking, no upsells</span>
+              <a
+                href="https://github.com/ankitsxchdeva/quantlab"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-info hover:underline"
+              >
+                Source on GitHub
+              </a>
             </div>
           </div>
           <div className="flex sm:flex-col gap-4 sm:gap-1 sm:items-end">
             <span className="font-mono text-text-2">quantlab</span>
-            <span className="text-text-3">v0.1</span>
           </div>
         </div>
       </footer>
