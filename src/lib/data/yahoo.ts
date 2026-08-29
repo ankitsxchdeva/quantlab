@@ -72,8 +72,10 @@ export async function fetchBars(req: DataRequest): Promise<FetchResult> {
   const res = await fetchViaCurl(
     url.toString(),
     {
-      "user-agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      // A full Chrome UA over curl's TLS stack still gets 429'd (UA/TLS
+      // mismatch detection) — the minimal Mozilla/5.0 UA is what passes.
+      // Verified by in-container bisection 2026-08-29.
+      "user-agent": "Mozilla/5.0",
       accept: "application/json",
     },
     `Yahoo Finance request timed out for ${req.symbol}`,
