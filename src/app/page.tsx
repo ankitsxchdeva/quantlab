@@ -302,9 +302,10 @@ export default function Page() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Source on GitHub"
-              className="btn btn-ghost h-8 w-8 inline-flex items-center justify-center"
+              className="btn btn-secondary h-8 px-2.5 text-xs flex items-center gap-1.5"
             >
-              <GithubLogo size={16} />
+              <GithubLogo size={14} weight="bold" />
+              <span className="hidden sm:inline">GitHub</span>
             </a>
             <button
               onClick={() => setSettingsOpen(true)}
