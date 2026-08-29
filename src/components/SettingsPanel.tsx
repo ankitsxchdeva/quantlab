@@ -153,10 +153,11 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
 
           {local.provider === "ollama" ? (
             <p className="text-sm text-text-2">
-              Runs the free demo on the home server&apos;s local model (27B GPU) — no API key
-              needed. Rate limited, so short waits between runs are normal.
+              Runs a couple requests on my local model (27B GPU) — no API key needed.
+              Rate limited, so short waits between runs are normal.
             </p>
           ) : (
+            <>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="apiKey" className="micro-label">API key</label>
@@ -198,7 +199,6 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
               <span className="text-xs text-text-3">Never persisted on our servers.</span>
             </div>
           </div>
-          )}
 
           <div>
             <label htmlFor="model" className="micro-label mb-2 block">Model <span className="text-text-3 normal-case tracking-normal">(optional)</span></label>
@@ -216,6 +216,8 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
               Leave blank to use the default ({DEFAULT_MODEL_HINT[local.provider]}).
             </p>
           </div>
+            </>
+          )}
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-border bg-surface-1 flex gap-2 justify-end">
