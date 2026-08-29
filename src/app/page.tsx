@@ -198,15 +198,17 @@ export default function Page() {
     }
   }, [settings, hydrated]);
 
+  const isLocal = settings.provider === "ollama";
   const hasKey = settings.apiKey.trim().length > 0;
-  const canRun = hydrated && hasKey && prompt.trim().length > 0 && !loading;
+  // The demo provider is keyless — only hosted providers are gated on a key.
+  const canRun = hydrated && (isLocal || hasKey) && prompt.trim().length > 0 && !loading;
 
   const disabledReason = useMemo(() => {
     if (!hydrated) return undefined;
-    if (!hasKey) return "Add your LLM API key in settings to start.";
+    if (!isLocal && !hasKey) return "Add your LLM API key in settings to start.";
     if (prompt.trim().length === 0) return "Type or pick an idea to begin.";
     return undefined;
-  }, [hydrated, hasKey, prompt]);
+  }, [hydrated, isLocal, hasKey, prompt]);
 
   function showExample() {
     const ex = getExampleResult();
@@ -292,7 +294,7 @@ export default function Page() {
                 <ol className="space-y-2.5 text-sm text-text-2">
                   <li className="flex gap-2.5">
                     <span className="font-mono text-text-3 shrink-0 mt-0.5">1.</span>
-                    <span><span className="text-text-1">Describe an idea</span> in plain English. It goes to the selected LLM — the local home-server model by default, no API key needed.</span>
+                    <span><span className="text-text-1">Describe an idea</span> in plain English. It goes to the selected LLM — the free demo model by default, no API key needed.</span>
                   </li>
                   <li className="flex gap-2.5">
                     <span className="font-mono text-text-3 shrink-0 mt-0.5">2.</span>

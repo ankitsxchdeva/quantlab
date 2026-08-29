@@ -17,11 +17,12 @@ interface SettingsPanelProps {
   onChange: (next: LLMSettings) => void;
 }
 
+// Key order is UI order: Demo first, since it's the keyless default.
 const PROVIDER_LABELS: Record<LLMProvider, string> = {
+  ollama: "Demo",
   openai: "OpenAI",
   anthropic: "Anthropic",
   google: "Google",
-  ollama: "Local",
 };
 
 const DEFAULT_MODEL_HINT: Record<LLMProvider, string> = {
@@ -152,8 +153,8 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
 
           {local.provider === "ollama" ? (
             <p className="text-sm text-text-2">
-              Runs on the home server&apos;s Ollama (27B, local GPU) — no API key needed.
-              Rate limited, so short waits between runs are normal.
+              Runs the free demo on the home server&apos;s local model (27B GPU) — no API key
+              needed. Rate limited, so short waits between runs are normal.
             </p>
           ) : (
             <div>
