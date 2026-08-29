@@ -24,7 +24,9 @@ import { getExampleResult } from "@/lib/demo/example";
 const SETTINGS_KEY = "algotrading.llm.settings.v1";
 
 const DEFAULT_SETTINGS: LLMSettings = {
-  provider: "openai",
+  // Local Ollama on the home server: zero-friction default for public
+  // visitors — no key to paste, and rate limits protect the GPU.
+  provider: "ollama",
   apiKey: "",
   model: undefined,
 };
@@ -102,7 +104,7 @@ function loadSettings(): LLMSettings {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<LLMSettings>;
-    if (parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google") {
+    if (parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google" && parsed.provider !== "ollama") {
       return DEFAULT_SETTINGS;
     }
     return {
@@ -290,7 +292,7 @@ export default function Page() {
                 <ol className="space-y-2.5 text-sm text-text-2">
                   <li className="flex gap-2.5">
                     <span className="font-mono text-text-3 shrink-0 mt-0.5">1.</span>
-                    <span><span className="text-text-1">Describe an idea</span> in plain English. We sent it to your LLM provider with your API key.</span>
+                    <span><span className="text-text-1">Describe an idea</span> in plain English. It goes to the selected LLM — the local home-server model by default, no API key needed.</span>
                   </li>
                   <li className="flex gap-2.5">
                     <span className="font-mono text-text-3 shrink-0 mt-0.5">2.</span>

@@ -16,8 +16,10 @@ export const maxDuration = 60;
 
 const RequestSchema = z.object({
   prompt: z.string().min(1).max(8000),
-  provider: z.enum(["openai", "anthropic", "google"]),
-  apiKey: z.string().min(1),
+  provider: z.enum(["openai", "anthropic", "google", "ollama"]),
+  // Optional because the local Ollama provider ignores it; compileStrategy
+  // rejects an empty key for the hosted providers.
+  apiKey: z.string().optional().default(""),
   model: z.string().optional(),
 });
 
@@ -25,6 +27,19 @@ const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
 
 const limiter = createRateLimiter(RATE_LIMIT, RATE_WINDOW_MS);
+
+// The ollama provider runs a 27B model on one home GPU: inference is serial
+// and a compile takes ~10-30s. Three guards, cheapest first: a global hourly
+// cap (bounds sustained abuse even from rotating IPs), a stricter per-IP
+// limit, and a concurrency cap (the GPU does 1-2 inferences well, not 10).
+// Every limit message points at the BYOK settings path.
+const OLLAMA_RATE_LIMIT = 5;
+const OLLAMA_GLOBAL_LIMIT = 60;
+const OLLAMA_GLOBAL_WINDOW_MS = 3_600_000;
+const OLLAMA_MAX_CONCURRENT = 2;
+const ollamaLimiter = createRateLimiter(OLLAMA_RATE_LIMIT, RATE_WINDOW_MS);
+const ollamaGlobalLimiter = createRateLimiter(OLLAMA_GLOBAL_LIMIT, OLLAMA_GLOBAL_WINDOW_MS);
+let ollamaInFlight = 0;
 
 interface Timings {
   compileMs: number;
@@ -78,6 +93,32 @@ async function handleRun(req: Request): Promise<NextResponse> {
   }
 
   const { prompt, provider, apiKey, model } = parsed.data;
+  const isLocal = provider === "ollama";
+
+  if (isLocal) {
+    if (ollamaGlobalLimiter.isLimited("global", Date.now())) {
+      log(429, { error: "local_global_capped" });
+      return NextResponse.json(
+        { error: "The local model has reached its hourly limit. Try again later — or open Settings and use your own provider key (OpenAI, Anthropic, or Google)." },
+        { status: 429 },
+      );
+    }
+    if (ollamaLimiter.isLimited(ip, Date.now())) {
+      log(429, { error: "local_rate_limited" });
+      return NextResponse.json(
+        { error: `Too many local-model runs from this address. The limit is ${OLLAMA_RATE_LIMIT} per minute — open Settings and use your own provider key for unlimited runs.` },
+        { status: 429 },
+      );
+    }
+    if (ollamaInFlight >= OLLAMA_MAX_CONCURRENT) {
+      log(429, { error: "local_model_busy" });
+      return NextResponse.json(
+        { error: "The local model is busy with another run — try again in a few seconds, or use your own provider key in Settings." },
+        { status: 429 },
+      );
+    }
+    ollamaInFlight += 1;
+  }
 
   let strategy;
   const compileStart = performance.now();
@@ -95,6 +136,8 @@ async function handleRun(req: Request): Promise<NextResponse> {
     const message = err instanceof LLMError ? err.message : err instanceof Error ? err.message : "Failed to compile strategy";
     log(400, { provider, promptLength: prompt.length, error: message });
     return NextResponse.json({ error: message }, { status: 400 });
+  } finally {
+    if (isLocal) ollamaInFlight -= 1;
   }
 
   let fetched;

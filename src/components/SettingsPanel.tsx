@@ -21,18 +21,21 @@ const PROVIDER_LABELS: Record<LLMProvider, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
   google: "Google",
+  ollama: "Local",
 };
 
 const DEFAULT_MODEL_HINT: Record<LLMProvider, string> = {
   openai: "gpt-4o-mini",
   anthropic: "claude-sonnet-5",
   google: "gemini-2.0-flash",
+  ollama: "qwen3.8:27b",
 };
 
 const KEY_URLS: Record<LLMProvider, string> = {
   openai: "https://platform.openai.com/api-keys",
   anthropic: "https://console.anthropic.com/settings/keys",
   google: "https://aistudio.google.com/app/apikey",
+  ollama: "https://ollama.com",
 };
 
 function LockIcon() {
@@ -118,7 +121,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
             <h2 className="text-base font-medium text-text-1">Provider settings</h2>
-            <p className="text-xs text-text-3 mt-0.5">Bring your own key.</p>
+            <p className="text-xs text-text-3 mt-0.5">Local model by default — or bring your own key.</p>
           </div>
           <button onClick={onClose} className="btn btn-ghost text-sm" aria-label="Close settings">
             Close
@@ -128,7 +131,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
         <div className="px-6 py-5 space-y-6 overflow-y-auto" style={{ height: "calc(100% - 145px)" }}>
           <div>
             <div className="micro-label mb-2">LLM provider</div>
-            <div className="grid grid-cols-3 gap-2 p-1 rounded-lg border border-border bg-surface-0">
+            <div className="grid grid-cols-4 gap-2 p-1 rounded-lg border border-border bg-surface-0">
               {(Object.keys(PROVIDER_LABELS) as LLMProvider[]).map((p) => (
                 <button
                   key={p}
@@ -147,10 +150,16 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="apiKey" className="micro-label">API key</label>
-              <span className="inline-flex items-center gap-1.5 text-xs text-text-3">
+          {local.provider === "ollama" ? (
+            <p className="text-sm text-text-2">
+              Runs on the home server&apos;s Ollama (27B, local GPU) — no API key needed.
+              Rate limited, so short waits between runs are normal.
+            </p>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="apiKey" className="micro-label">API key</label>
+                <span className="inline-flex items-center gap-1.5 text-xs text-text-3">
                 <LockIcon />
                 <span>Stored only in this browser.</span>
               </span>
@@ -188,6 +197,7 @@ export default function SettingsPanel({ open, onClose, settings, onChange }: Set
               <span className="text-xs text-text-3">Never persisted on our servers.</span>
             </div>
           </div>
+          )}
 
           <div>
             <label htmlFor="model" className="micro-label mb-2 block">Model <span className="text-text-3 normal-case tracking-normal">(optional)</span></label>

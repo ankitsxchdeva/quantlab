@@ -54,11 +54,20 @@ function mockSuccessPipeline(): void {
   runBacktestMock.mockReturnValue(backtestResult as never);
 }
 
+// Each test gets its own time island, 2h past the last: the module-level
+// rate-limit buckets sweep on any window-sized jump, so every test starts
+// with empty limiter state no matter what ran before.
+let timeIsland = 1_800_000_000_000;
+
 describe("POST /api/run", () => {
   beforeEach(() => {
     vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.useFakeTimers();
+    timeIsland += 7_200_000;
+    vi.setSystemTime(timeIsland);
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     compileMock.mockReset();
     fetchBarsMock.mockReset();
@@ -73,7 +82,7 @@ describe("POST /api/run", () => {
   });
 
   it("returns 400 when the request fails zod validation", async () => {
-    const res = await POST(makeReq({ prompt: "hi", provider: "openai" }));
+    const res = await POST(makeReq({ provider: "openai", apiKey: "sk-x" }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/Invalid request/);
@@ -174,5 +183,50 @@ describe("POST /api/run", () => {
     }
     const limited = await POST(makeReq(validBody, headers));
     expect(limited.status).toBe(429);
+  });
+
+  it("accepts the ollama provider without an API key", async () => {
+    mockSuccessPipeline();
+    const res = await POST(makeReq({ prompt: "buy SPY above the 200dma", provider: "ollama" }));
+    expect(res.status).toBe(200);
+    expect(compileMock).toHaveBeenCalledWith(expect.objectContaining({ provider: "ollama", apiKey: "" }));
+  });
+
+  it("rate limits the ollama provider separately at 5/min per IP", async () => {
+    mockSuccessPipeline();
+    const headers = { "x-forwarded-for": "203.0.113.55" };
+    for (let i = 0; i < 5; i++) {
+      const res = await POST(makeReq({ prompt: "x", provider: "ollama" }, headers));
+      expect(res.status).toBe(200);
+    }
+    const limited = await POST(makeReq({ prompt: "x", provider: "ollama" }, headers));
+    expect(limited.status).toBe(429);
+  });
+
+  it("caps concurrent ollama runs and recovers afterwards", async () => {
+    const resolvers: Array<() => void> = [];
+    compileMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(() => resolve({ strategy, raw: JSON.stringify(strategy), repaired: false }));
+        }),
+    );
+    fetchBarsMock.mockResolvedValue({ bars: [bar], market });
+    runBacktestMock.mockReturnValue(backtestResult as never);
+
+    const p1 = POST(makeReq({ prompt: "a", provider: "ollama" }));
+    const p2 = POST(makeReq({ prompt: "b", provider: "ollama" }));
+    const third = await POST(makeReq({ prompt: "c", provider: "ollama" }));
+    expect(third.status).toBe(429);
+    expect((await third.json()).error).toMatch(/busy/);
+
+    resolvers.forEach((release) => release());
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(200);
+
+    mockSuccessPipeline();
+    const after = await POST(makeReq({ prompt: "d", provider: "ollama" }));
+    expect(after.status).toBe(200);
   });
 });

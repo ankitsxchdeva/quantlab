@@ -110,7 +110,8 @@ function generate(model: LanguageModel, promptText: string) {
 
 export async function compileStrategy(req: LLMRequest): Promise<CompileResult> {
   const { provider, apiKey, model, prompt } = req;
-  if (!apiKey || apiKey.trim().length === 0) {
+  // Ollama is the local home-server model and takes no key.
+  if (provider !== "ollama" && (!apiKey || apiKey.trim().length === 0)) {
     throw new LLMError(`Missing API key for ${provider}`, { provider });
   }
   if (!prompt || prompt.trim().length === 0) {

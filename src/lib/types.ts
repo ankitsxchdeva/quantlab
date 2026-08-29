@@ -87,7 +87,7 @@ export interface BacktestResult {
   warnings: string[];
 }
 
-export type LLMProvider = "openai" | "anthropic" | "google";
+export type LLMProvider = "openai" | "anthropic" | "google" | "ollama";
 
 export interface LLMRequest {
   provider: LLMProvider;

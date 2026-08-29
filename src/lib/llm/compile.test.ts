@@ -131,6 +131,15 @@ describe("compileStrategy", () => {
     expect(generateObjectMock).toHaveBeenCalledTimes(1);
   });
 
+  it("requires no API key for the ollama provider", async () => {
+    generateObjectMock.mockResolvedValue({ object: sampleStrategy });
+
+    const result = await compileStrategy({ provider: "ollama", apiKey: "", prompt: "x" });
+
+    expect(result.strategy).toEqual(sampleStrategy);
+    expect(generateObjectMock).toHaveBeenCalledTimes(1);
+  });
+
   it("repairs a schema validation failure with one retry", async () => {
     const err = Object.assign(new Error("schema validation failed"), { name: "AI_NoObjectGeneratedError" });
     generateObjectMock.mockRejectedValueOnce(err);
