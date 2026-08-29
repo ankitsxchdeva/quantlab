@@ -1,5 +1,5 @@
 import type { Bar, DataRequest, Timeframe } from "@/lib/types";
-import { fetchWithTimeout, parseDate, type FetchResult } from "./common";
+import { fetchViaCurl, parseDate, type FetchResult } from "./common";
 
 const TIMEFRAME_TO_INTERVAL: Record<Timeframe, string> = {
   "1m": "1m",
@@ -69,15 +69,12 @@ export async function fetchBars(req: DataRequest): Promise<FetchResult> {
   url.searchParams.set("includePrePost", "false");
   url.searchParams.set("events", "div,splits");
 
-  const res = await fetchWithTimeout(
+  const res = await fetchViaCurl(
     url.toString(),
     {
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        accept: "application/json",
-      },
-      cache: "no-store",
+      "user-agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      accept: "application/json",
     },
     `Yahoo Finance request timed out for ${req.symbol}`,
   );

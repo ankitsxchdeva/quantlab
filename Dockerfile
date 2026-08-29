@@ -31,6 +31,10 @@ ENV HOSTNAME=0.0.0.0
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
+# curl is load-bearing: Yahoo Finance 429s Node's TLS fingerprint, so Yahoo
+# fetches shell out to it (src/lib/data/common.ts fetchViaCurl).
+RUN apk add --no-cache curl
+
 # `output: "standalone"` emits a minimal server plus only the node_modules it
 # actually traced. Static assets are not included in it and must be copied.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -39,7 +43,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 
-# No shell, no curl in the runtime image; node is the only interpreter present.
+# No shell in the runtime image; node is the interpreter and curl is present
+# only for fetchViaCurl (see above).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3000/api/arb',{method:'OPTIONS'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchBars } from "./yahoo";
+import { fetchViaCurl } from "./common";
+
+vi.mock("./common", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./common")>();
+  return { ...actual, fetchViaCurl: vi.fn() };
+});
 
 const sampleResponse = (override?: Partial<{ timestamp: number[]; open: (number | null)[]; high: (number | null)[]; low: (number | null)[]; close: (number | null)[]; volume: (number | null)[] }>) => ({
   chart: {
@@ -24,7 +30,7 @@ const sampleResponse = (override?: Partial<{ timestamp: number[]; open: (number 
 });
 
 describe("fetchBars (yahoo)", () => {
-  const fetchSpy = vi.spyOn(globalThis, "fetch");
+  const fetchSpy = vi.mocked(fetchViaCurl);
 
   beforeEach(() => {
     fetchSpy.mockReset();
@@ -99,16 +105,20 @@ describe("fetchBars (yahoo)", () => {
   });
 
   it("surfaces a distinct timeout message when Yahoo times out", async () => {
-    fetchSpy.mockRejectedValue(new DOMException("The operation timed out", "TimeoutError"));
+    // fetchViaCurl owns the curl --max-time -> message conversion; assert the
+    // converted error propagates unchanged.
+    fetchSpy.mockRejectedValue(new Error("Yahoo Finance request timed out for AAPL"));
     await expect(fetchBars({ symbol: "AAPL", source: "stock", timeframe: "1d", start: "", end: "" })).rejects.toThrow(
       /Yahoo Finance request timed out for AAPL/,
     );
   });
 
-  it("passes an abort signal to the outbound fetch", async () => {
+  it("goes through curl with a browser UA (Yahoo 429s Node's TLS fingerprint)", async () => {
     fetchSpy.mockResolvedValue(new Response(JSON.stringify(sampleResponse()), { status: 200 }));
     await fetchBars({ symbol: "AAPL", source: "stock", timeframe: "1d", start: "", end: "" });
-    expect(fetchSpy.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+    const [calledUrl, headers] = fetchSpy.mock.calls[0];
+    expect(calledUrl).toContain("query1.finance.yahoo.com");
+    expect(headers).toMatchObject({ "user-agent": expect.stringContaining("Mozilla") });
   });
 
   it("sorts bars ascending by time", async () => {
