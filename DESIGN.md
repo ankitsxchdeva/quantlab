@@ -1,6 +1,6 @@
 # quantlab design
 
-All design decisions follow ~/Documents/design/DESIGN.md (Colophon, v0.4,
+All design decisions follow ~/Documents/design/DESIGN.md (Colophon, v0.5,
 canonical lane). Do not invent colors, fonts, spacing, or motion outside it.
 Where any skill or model suggestion conflicts, the spec wins.
 
