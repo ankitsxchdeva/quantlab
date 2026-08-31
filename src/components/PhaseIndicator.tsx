@@ -1,17 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface PhaseIndicatorProps {
   active: boolean;
 }
 
 const PHASES = [
-  "Reading your idea",
-  "Fetching market history",
-  "Simulating every trade",
+  "reading your idea",
+  "fetching market history",
+  "simulating every trade",
 ] as const;
 
+/*
+ * Progress (Colophon §3): a staged text list (pending one rung down, active
+ * full ink, done muted) plus a thin accent bar. Indeterminate motion is
+ * opacity-only; no spinners, no position motion, no invented percentages.
+ */
 export default function PhaseIndicator({ active }: PhaseIndicatorProps) {
   const [phase, setPhase] = useState(0);
 
@@ -31,16 +37,23 @@ export default function PhaseIndicator({ active }: PhaseIndicatorProps) {
   if (!active) return null;
 
   return (
-    <div className="panel px-5 py-4 animate-fade-in" role="status" aria-live="polite">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-accent animate-pulse-soft" aria-hidden="true" />
-          <span className="text-sm text-text-1 truncate">{PHASES[phase]}</span>
-        </div>
-        <span className="micro-label shrink-0">{phase + 1} / {PHASES.length}</span>
-      </div>
-      <div className="mt-3 h-[2px] w-full overflow-hidden rounded-full bg-border" aria-hidden="true">
-        <div className="h-full w-1/3 bg-accent animate-sweep rounded-full" />
+    <div className="border-t border-border pt-4 animate-rise" role="status" aria-live="polite">
+      <ol className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-small">
+        {PHASES.map((p, i) => (
+          <li
+            key={p}
+            className={cn(
+              i < phase && "text-muted",
+              i === phase && "text-fg",
+              i > phase && "text-dim",
+            )}
+          >
+            {p}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-3 h-[2px] w-full bg-border" aria-hidden="true">
+        <div className="h-full w-full bg-accent animate-pulse-soft" />
       </div>
     </div>
   );

@@ -18,15 +18,6 @@ interface StrategyInputProps {
   showExamples?: boolean;
 }
 
-function ArrowIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
 export default function StrategyInput({
   value,
   onChange,
@@ -61,14 +52,14 @@ export default function StrategyInput({
   }
 
   const isMac = typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
-  const kbd = isMac ? "⌘↩" : "Ctrl+↩";
+  const kbd = isMac ? "⌘↩" : "ctrl+↩";
 
   return (
-    <div className="space-y-5">
-      <section className="panel p-5 sm:p-6">
-        <div className="flex items-center justify-between mb-3">
-          <label htmlFor="prompt" className="micro-label">Your idea</label>
-          <span className="text-xs text-text-3">No code. No formulas. Just an idea.</span>
+    <div className="space-y-6">
+      <section className="border-t border-border pt-4">
+        <div className="flex items-baseline justify-between mb-2">
+          <label htmlFor="prompt" className="text-label text-muted">your idea</label>
+          <span className="text-meta text-dim italic">no code, no formulas, just an idea.</span>
         </div>
         <textarea
           ref={textareaRef}
@@ -76,29 +67,22 @@ export default function StrategyInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder='Try: "Buy AAPL when its 50-day average crosses above its 200-day, sell when it crosses back below"'
-          className="input w-full resize-none text-base leading-relaxed min-h-[120px]"
+          placeholder='try: "buy AAPL when its 50-day average crosses above its 200-day, sell when it crosses back below"'
+          className="input w-full resize-none text-body leading-relaxed min-h-[120px]"
           spellCheck="false"
         />
 
-        <div className="mt-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-          <p className="text-xs text-text-3 leading-relaxed sm:min-w-0 sm:truncate">
-            {disabledReason ? disabledReason : <>Press <span className="font-mono text-text-2">{kbd}</span> to run</>}
+        <div className="mt-3 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-meta text-dim sm:min-w-0 sm:truncate">
+            {disabledReason ? disabledReason : <>press <span className="kbd">{kbd}</span> to run</>}
           </p>
           <button
             onClick={onRun}
             disabled={!canRun || loading}
-            className="btn btn-primary group min-w-[160px] self-stretch sm:self-auto"
+            className="action-chip action-primary text-title min-w-[140px] self-stretch sm:self-auto"
             aria-busy={loading}
           >
-            <span className="flex items-center gap-2">
-              {loading ? "Running" : "Run backtest"}
-              {!loading && (
-                <span className="transition-transform duration-180 ease-out group-hover:translate-x-0.5">
-                  <ArrowIcon />
-                </span>
-              )}
-            </span>
+            {loading ? "running" : "run backtest"}
           </button>
         </div>
       </section>
@@ -106,9 +90,9 @@ export default function StrategyInput({
       {showExamples && <div className="space-y-5">
         {exampleGroups.map((group) => (
           <div key={group.label}>
-            <div className="flex items-baseline gap-3 mb-2 px-1">
-              <span className="micro-label">{group.label}</span>
-              <span className="text-xs text-text-3">{group.items.length} ideas</span>
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="text-label text-muted">{group.label.toLowerCase()}</span>
+              <span className="text-meta text-dim">{group.items.length} ideas</span>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {group.items.map((ex) => (
@@ -116,7 +100,7 @@ export default function StrategyInput({
                   key={ex}
                   type="button"
                   onClick={() => pickExample(ex)}
-                  className="chip whitespace-normal text-left w-full text-sm leading-snug !rounded-lg px-3.5 py-2.5"
+                  className="action-chip text-small whitespace-normal text-left w-full leading-snug justify-start"
                   title={ex}
                 >
                   {ex}

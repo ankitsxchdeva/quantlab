@@ -2,33 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * quantlab follows the Colophon design language, ~/Documents/design/DESIGN.md
+ * (v0.4, canonical lane). Token values mirror tokens.css there; do not invent
+ * colors, spacing, or motion outside the spec.
+ * Data hues (§5) are for data values only: P&L, trade markers, series.
+ * Theme mechanics: data-theme="light|dark" on <html>, set by the inline
+ * script in layout.tsx; absence follows prefers-color-scheme.
+ */
+
 :root {
-  --surface-0: oklch(0.16 0.005 80);
-  --surface-1: oklch(0.20 0.006 80);
-  --surface-2: oklch(0.24 0.006 80);
-  --surface-3: oklch(0.28 0.007 80);
-  --border: oklch(0.30 0.006 80);
-  --border-strong: oklch(0.40 0.008 80);
-  --text-1: oklch(0.96 0.006 80);
-  --text-2: oklch(0.72 0.008 80);
-  --text-3: oklch(0.52 0.008 80);
-  --accent: oklch(0.78 0.16 145);
-  --accent-soft: oklch(0.30 0.06 145);
-  --accent-ink: oklch(0.18 0.04 145);
-  --danger: oklch(0.68 0.20 25);
-  --danger-soft: oklch(0.30 0.08 25);
-  --warning: oklch(0.80 0.13 75);
-  --info: oklch(0.72 0.10 240);
-  /*
-   * The benchmark series on the equity chart. Its own role rather than a reuse:
-   * it has to sit clearly below the strategy line it is being compared against,
-   * while staying brighter than the axis labels behind it. That lands between
-   * --text-2 and --text-3, where no existing token sits.
-   */
-  --chart-benchmark: oklch(0.6 0.008 80);
-  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bg: #f5f4fa;            /* lavender paper */
+  --fg: #30292f;            /* plum ink */
+  --muted: #6a6884;         /* stone lilac, AA on bg */
+  --border: #d8d6e8;        /* mist: all 1px hairlines */
+  --accent: #355691;        /* signal indigo: interactivity/state only */
+  --accent-hover: #5f5aa2;  /* wisteria: hover lift, focus outline */
+  --editorial: #bf5a4a;     /* coral ink: decorative marks only (//, ·) */
+
+  /* data hues: data values only, never chrome (§5) */
+  --data-pos: #35744f;
+  --data-neg: #b4382f;
+  --data-warn: #9a6f1e;
+  --data-bench: #8a86a3;
+
+  --font-sans: var(--font-lato), Verdana, Helvetica, sans-serif;
+  --font-mono: monospace;   /* earned only: data, ids, kbd hints, numerals */
+
+  /* the dimming ladder: fg -> muted -> muted at --dim. Nothing else recedes. */
+  --dim: 0.75;
+
+  /* the one clock: all state transitions use this */
+  --t: 150ms cubic-bezier(0.25, 1, 0.5, 1);
+  --t-underline: 250ms ease;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #1e1c22;            /* night plum */
+  --fg: #e8e4f4;            /* pale lavender */
+  --muted: #8e8aab;         /* deep stone lilac, AA on bg */
+  --border: #413f54;        /* aubergine */
+  --accent: #8b87c8;        /* wisteria signal */
+  --accent-hover: #9db8dc;  /* sky indigo */
+  --editorial: #de9180;     /* pale coral */
+
+  --data-pos: #7fb98a;
+  --data-neg: #d97066;
+  --data-warn: #d9a85c;
+  --data-bench: #6e6a85;
+
   color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1e1c22;
+    --fg: #e8e4f4;
+    --muted: #8e8aab;
+    --border: #413f54;
+    --accent: #8b87c8;
+    --accent-hover: #9db8dc;
+    --editorial: #de9180;
+
+    --data-pos: #7fb98a;
+    --data-neg: #d97066;
+    --data-warn: #d9a85c;
+    --data-bench: #6e6a85;
+
+    color-scheme: dark;
+  }
 }
 
 @layer base {
@@ -37,180 +81,257 @@
   }
   html,
   body {
-    background-color: var(--surface-0);
-    color: var(--text-1);
+    background-color: var(--bg);
+    color: var(--fg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "ss01" 1, "ss02" 1, "cv11" 1, "rlig" 1, "calt" 1;
     text-rendering: optimizeLegibility;
   }
   body {
     font-family: var(--font-sans);
   }
+  /* selection: inverted accent, tinted on both sides */
   ::selection {
-    background: var(--accent-soft);
-    color: var(--text-1);
+    background: var(--accent);
+    color: var(--bg);
   }
-  *:focus-visible {
-    outline: 2px solid var(--border-strong);
-    outline-offset: 2px;
-    border-radius: 4px;
+  /* one ring for everything, offset, softly squared */
+  :focus-visible {
+    outline: 2px solid var(--accent-hover);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
   /* tabular numerals on anything that screams "number" */
   .tabular {
     font-variant-numeric: tabular-nums;
     font-family: var(--font-mono);
   }
+
+  /* reduced motion: everything lands instantly, no exceptions */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
-  .panel {
-    background-color: var(--surface-1);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+  /* hairlines are the structural system: rows and columns on the flat page */
+  .hairline-b {
+    border-bottom: 1px solid var(--border);
   }
-  .panel-raised {
-    background-color: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+  .hairline-t {
+    border-top: 1px solid var(--border);
+  }
+
+  /* the third rung of the dimming ladder: muted at --dim */
+  .text-dim {
+    color: color-mix(in srgb, var(--muted) 75%, transparent);
   }
 
   /*
-   * Popovers and tooltips, which float above the flow rather than sitting in
-   * it. Panels in the flow stay flat by design; an overlay needs depth or it
-   * reads as a rendering bug rather than a layer.
-   *
-   * The shadow is tinted toward the surface hue (80) instead of Tailwind's
-   * untinted black. On a warm-neutral UI a pure-black shadow reads as a hole
-   * punched in the page rather than the element lifting off it.
+   * Link (§3): accent at rest, no underline. Hover lifts to accent-hover and
+   * grows the underline 0 -> 100% over 250ms. Focus uses the global ring.
    */
-  .panel-overlay {
-    background-color: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow:
-      0 12px 32px -8px oklch(0.1 0.01 80 / 0.55),
-      0 2px 8px -3px oklch(0.1 0.01 80 / 0.45);
+  .link {
+    color: var(--accent);
+    position: relative;
+    text-decoration: none;
+    transition: color var(--t);
+  }
+  .link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    height: 1px;
+    width: 0;
+    background-color: currentColor;
+    transition: width var(--t-underline);
+  }
+  .link:hover {
+    color: var(--accent-hover);
+  }
+  .link:hover::after {
+    width: 100%;
   }
 
-  .hairline {
-    border-bottom: 1px solid var(--border);
+  /*
+   * Actions (§2): text affordances and bordered chips, never filled buttons.
+   * .action is the quiet text affordance; .action-chip is the bordered chip;
+   * .action-primary marks the one primary action with the accent border mix.
+   */
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--muted);
+    font-size: inherit;
+    cursor: pointer;
+    transition: color var(--t);
+  }
+  .action:hover:not(:disabled) {
+    color: var(--accent-hover);
+  }
+  .action:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
   }
 
-  .btn {
+  .action-chip {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    height: 36px;
-    padding-left: 0.875rem;
-    padding-right: 0.875rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-      color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-      transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
-    cursor: pointer;
-  }
-  .btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  .btn-primary {
-    background-color: var(--accent);
-    color: var(--accent-ink);
-    border: 1px solid color-mix(in oklch, var(--accent) 70%, black);
-  }
-  .btn-primary:hover:not(:disabled) {
-    background-color: color-mix(in oklch, var(--accent) 92%, white);
-  }
-  .btn-primary:active:not(:disabled) {
-    transform: translateY(0.5px);
-  }
-
-  .btn-secondary {
-    background-color: var(--surface-1);
-    color: var(--text-1);
+    gap: 0.5em;
+    padding: 0.45em 0.9em;
+    background: none;
     border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--fg);
+    cursor: pointer;
+    transition: color var(--t), border-color var(--t);
   }
-  .btn-secondary:hover:not(:disabled) {
-    background-color: var(--surface-2);
-    border-color: var(--border-strong);
+  .action-chip:hover:not(:disabled) {
+    color: var(--accent-hover);
+    border-color: var(--accent-hover);
   }
-
-  .btn-ghost {
-    background-color: transparent;
-    color: var(--text-2);
-    border: 1px solid transparent;
-  }
-  .btn-ghost:hover:not(:disabled) {
-    color: var(--text-1);
-    background-color: var(--surface-1);
+  .action-chip:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
   }
 
+  .action-primary {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    color: var(--accent);
+  }
+  .action-primary:hover:not(:disabled) {
+    color: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  /* chip badge (§3): accent text, 35%-accent border mix, radius 2px */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.15em 0.5em;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* kbd hint: mono, hairline, radius 2px; only on shortcuts that work */
+  .kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0 0.3em;
+    line-height: 1.5;
+  }
+
+  /* search-style input (§3): transparent, hairline, radius 2px */
   .input {
     width: 100%;
-    background-color: var(--surface-0);
+    background-color: transparent;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    color: var(--text-1);
-    transition: border-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
+    border-radius: 2px;
+    padding: 0.5em 0.75em;
+    font-size: 15px;
+    color: var(--fg);
+    transition: border-color var(--t);
   }
   .input::placeholder {
-    color: var(--text-3);
+    color: var(--muted);
+    opacity: var(--dim);
   }
   .input:hover {
-    border-color: var(--border-strong);
+    border-color: var(--muted);
   }
   .input:focus {
     outline: none;
-    border-color: var(--border-strong);
-    background-color: var(--surface-1);
+    border-color: var(--accent);
   }
 
-  .micro-label {
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-3);
-  }
-
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.7rem;
-    border-radius: 999px;
+  /*
+   * Popover/panel (§3): page-bg surface, 1px border, radius 3px. The one
+   * licensed shadow is dark-theme popovers only; light stays flat.
+   */
+  .panel-pop {
+    background-color: var(--bg);
     border: 1px solid var(--border);
-    background-color: var(--surface-1);
-    color: var(--text-2);
-    font-size: 0.8125rem;
-    line-height: 1.1;
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-      color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
+    border-radius: 3px;
   }
-  .chip:hover {
-    border-color: var(--border-strong);
-    color: var(--text-1);
-    background-color: var(--surface-2);
+  :root[data-theme="dark"] .panel-pop {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .panel-pop {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
   }
 
-  .grid-lines {
-    background-image: linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 64px 64px;
-    background-position: -1px -1px;
-    mask-image: radial-gradient(ellipse at top, rgba(0, 0, 0, 0.7), transparent 70%);
+  /* dialog scrim: tinted toward the family, never untinted black */
+  .scrim {
+    background-color: color-mix(in srgb, var(--fg) 40%, transparent);
+  }
+
+  /* skeleton (§3): border-colored bars, opacity pulse, matches layout shape */
+  .skeleton {
+    height: 0.75em;
+    border-radius: 2px;
+    background-color: var(--border);
+    animation: pulse-soft 1.2s ease-in-out infinite;
+  }
+
+  /* tabs/nav (§3): lowercase, muted at rest, fg when active; the accent
+     underline grows 0 -> 100% over 250ms (state, so the accent is licensed) */
+  .tab {
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color var(--t);
+  }
+  .tab:hover {
+    color: var(--fg);
+  }
+  .tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    width: 0;
+    background-color: var(--accent);
+    transition: width var(--t-underline);
+  }
+  .tab[aria-selected="true"],
+  .tab[aria-current="page"] {
+    color: var(--fg);
+  }
+  .tab[aria-selected="true"]::after,
+  .tab[aria-current="page"]::after {
+    width: 100%;
+  }
+
+  /* editorial ink: decorative marks only (//, · separators), never interactive */
+  .mark {
+    color: var(--editorial);
   }
 
   .scroll-row {
@@ -223,6 +344,6 @@
   }
   .scroll-row::-webkit-scrollbar-thumb {
     background-color: var(--border);
-    border-radius: 999px;
+    border-radius: 2px;
   }
 }

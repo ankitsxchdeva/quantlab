@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BenchmarkResult, EquityPoint } from "@/lib/types";
 import type { MonteCarloBandPoint } from "@/lib/backtest/montecarlo";
 import { chartTheme, withAlpha } from "@/lib/chartTheme";
+import { onThemeChange } from "@/lib/theme";
 
 interface EquityChartProps {
   equity: EquityPoint[];
@@ -15,6 +16,9 @@ interface EquityChartProps {
 
 export default function EquityChart({ equity, benchmark, bands, height = 280 }: EquityChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // Canvas can't see a theme change; bumping this rebuilds with new tokens.
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => onThemeChange(() => setThemeTick((t) => t + 1)), []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -31,25 +35,25 @@ export default function EquityChart({ equity, benchmark, bands, height = 280 }: 
       // once the document has a computed style.
       const {
         accent: ACCENT,
-        benchmark: NEUTRAL_LINE,
-        text2: TEXT_2,
+        bench: BENCH,
+        muted: MUTED,
         border: BORDER,
-        surface1: SURFACE_1,
+        bg: BG,
       } = chartTheme();
 
-      // Tints of the accent, so they follow it instead of drifting.
-      const ACCENT_FILL_TOP = withAlpha(ACCENT, 0.32);
-      const ACCENT_FILL_BOTTOM = withAlpha(ACCENT, 0.02);
-      const FAN_FILL = withAlpha(ACCENT, 0.1);
-      const FAN_EDGE = withAlpha(ACCENT, 0.28);
+      // Constant low-alpha tints of their series color; the gradient ban
+      // applies to canvas too.
+      const ACCENT_FILL = withAlpha(ACCENT, 0.15);
+      const FAN_FILL = withAlpha(BENCH, 0.1);
+      const FAN_EDGE = withAlpha(BENCH, 0.35);
 
       const chart = mod.createChart(container, {
         width: container.clientWidth,
         height,
         layout: {
-          background: { color: SURFACE_1 },
-          textColor: TEXT_2,
-          fontFamily: "var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace",
+          background: { type: mod.ColorType.Solid, color: "transparent" },
+          textColor: withAlpha(MUTED, 0.75),
+          fontFamily: "monospace",
           fontSize: 11,
         },
         grid: {
@@ -86,8 +90,8 @@ export default function EquityChart({ equity, benchmark, bands, height = 280 }: 
         const fanMask = chart.addAreaSeries({
           ...fanOptions,
           lineColor: FAN_EDGE,
-          topColor: SURFACE_1,
-          bottomColor: SURFACE_1,
+          topColor: BG,
+          bottomColor: BG,
         });
         fanMask.setData(bands.map((p) => toPoint(p.p5, p)));
         const fanMedian = chart.addLineSeries({
@@ -100,7 +104,7 @@ export default function EquityChart({ equity, benchmark, bands, height = 280 }: 
 
       if (benchmark && benchmark.equity.length > 0) {
         const bench = chart.addLineSeries({
-          color: NEUTRAL_LINE,
+          color: BENCH,
           lineWidth: 1,
           priceLineVisible: false,
           lastValueVisible: false,
@@ -114,10 +118,11 @@ export default function EquityChart({ equity, benchmark, bands, height = 280 }: 
         );
       }
 
+      // The strategy's own curve is the subject: the one licensed accent series.
       const series = chart.addAreaSeries({
         lineColor: ACCENT,
-        topColor: ACCENT_FILL_TOP,
-        bottomColor: ACCENT_FILL_BOTTOM,
+        topColor: ACCENT_FILL,
+        bottomColor: ACCENT_FILL,
         lineWidth: 2,
         priceLineVisible: false,
       });
@@ -147,44 +152,44 @@ export default function EquityChart({ equity, benchmark, bands, height = 280 }: 
       disposed = true;
       if (cleanup) cleanup();
     };
-  }, [equity, benchmark, bands, height]);
+  }, [equity, benchmark, bands, height, themeTick]);
 
   if (equity.length === 0) {
     return (
-      <div className="panel p-5 text-sm text-text-3" style={{ height }}>
-        No equity data.
+      <div className="border-t border-border pt-4 text-small text-muted" style={{ height }}>
+        no equity data.
       </div>
     );
   }
 
   return (
-    <section className="panel p-4">
+    <section className="border-t border-border pt-4">
       <div className="flex items-baseline justify-between mb-3 gap-4">
-        <h3 className="text-sm font-medium text-text-1">Equity curve</h3>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5 text-text-2">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-accent" aria-hidden="true" /> Your strategy
+        <h3 className="text-title font-bold">equity curve</h3>
+        <div className="flex items-center gap-4 text-meta">
+          <span className="flex items-center gap-1.5 text-muted">
+            <span className="inline-block w-2.5 h-[2px] bg-accent" aria-hidden="true" /> your strategy
           </span>
           {benchmark && benchmark.equity.length > 0 && (
-            <span className="flex items-center gap-1.5 text-text-3">
+            <span className="flex items-center gap-1.5 text-dim">
               {/* Same token the series is drawn with, so the key matches the line. */}
-              <span className="inline-block w-2.5 h-[1.5px] rounded-full bg-chart-benchmark" aria-hidden="true" /> Buy
+              <span className="inline-block w-2.5 h-[1.5px] bg-data-bench" aria-hidden="true" /> buy
               &amp; hold
             </span>
           )}
           {bands && bands.length > 1 && (
-            <span className="flex items-center gap-1.5 text-text-3">
+            <span className="flex items-center gap-1.5 text-dim">
               {/* This swatch is DOM, not canvas, so it reads the token directly
                   at the same alphas the fan is painted with. */}
               <span
-                className="inline-block w-2.5 h-2.5 rounded-[3px]"
+                className="inline-block w-2.5 h-2.5 rounded-[2px]"
                 style={{
-                  backgroundColor: "color-mix(in oklch, var(--accent) 10%, transparent)",
-                  border: "1px solid color-mix(in oklch, var(--accent) 28%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--data-bench) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--data-bench) 35%, transparent)",
                 }}
                 aria-hidden="true"
               />{" "}
-              Monte Carlo 5-95%
+              monte carlo 5-95%
             </span>
           )}
         </div>

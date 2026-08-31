@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowRight, Gear, GithubLogo } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
+import { Gear, GithubLogo } from "@phosphor-icons/react";
 import SettingsPanel, { type LLMSettings } from "@/components/SettingsPanel";
+import ThemeToggle from "@/components/ThemeToggle";
 import { apiUrl } from "@/lib/apiBase";
 import TabNav from "@/components/TabNav";
 import StrategyInput, { type ExampleGroup } from "@/components/StrategyInput";
@@ -25,16 +26,14 @@ import { getExampleResult } from "@/lib/demo/example";
 const SETTINGS_KEY = "algotrading.llm.settings.v1";
 
 const DEFAULT_SETTINGS: LLMSettings = {
-  // Local Ollama on the home server: zero-friction default for public
-  // visitors — no key to paste, and rate limits protect the GPU.
-  provider: "ollama",
+  provider: "openai",
   apiKey: "",
   model: undefined,
 };
 
 const EXAMPLE_GROUPS: ExampleGroup[] = [
   {
-    label: "Classics",
+    label: "classics",
     items: [
       "Buy AAPL when its 50-day SMA crosses above its 200-day SMA, sell when it crosses back below",
       "Go long SPY when RSI(14) drops below 30, exit when RSI rises above 70, with a 5% stop loss",
@@ -42,7 +41,7 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
     ],
   },
   {
-    label: "Memes",
+    label: "memes",
     items: [
       "Buy NVDA every time it drops 8% in a day, sell when it recovers 4%, with a 10% stop",
       "Buy TSLA whenever RSI(2) drops under 10, exit on the next green candle",
@@ -50,14 +49,14 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
     ],
   },
   {
-    label: "Prediction markets",
+    label: "prediction markets",
     items: [
       "Buy YES on the Polymarket Trump 2028 nomination market when it dips below 30 cents, exit above 60 cents",
       "Polymarket momentum: long any election market when its 24-hour average crosses above its 7-day average",
     ],
   },
   {
-    label: "Counter-intuitive",
+    label: "counter-intuitive",
     items: [
       "Sell SPY into strength: short whenever it closes 2% above its 20-day high, cover at the next close below the 5-day low",
       "Fade the morning gap on QQQ: when the open is 1% above yesterday's close, short for the day with a 0.5% stop",
@@ -105,7 +104,7 @@ function loadSettings(): LLMSettings {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<LLMSettings>;
-    if (parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google" && parsed.provider !== "ollama") {
+    if (parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google") {
       return DEFAULT_SETTINGS;
     }
     return {
@@ -118,32 +117,24 @@ function loadSettings(): LLMSettings {
   }
 }
 
+/*
+ * The one image that carries weight (§2 imagery): the product's whole promise
+ * as two strokes. Line work only; fills and gradients are banned.
+ */
 function MiniEquitySVG() {
   return (
     <svg viewBox="0 0 360 120" className="w-full h-full" aria-hidden="true">
-      <defs>
-        <linearGradient id="fade-accent" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.32" />
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
       <path
         d="M0,96 L18,90 L38,93 L60,78 L82,82 L104,68 L124,72 L148,55 L168,60 L188,46 L210,52 L232,38 L254,44 L274,28 L298,34 L320,20 L340,26 L360,12"
         fill="none"
         stroke="var(--accent)"
-        strokeOpacity="0.65"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
       <path
-        d="M0,96 L18,90 L38,93 L60,78 L82,82 L104,68 L124,72 L148,55 L168,60 L188,46 L210,52 L232,38 L254,44 L274,28 L298,34 L320,20 L340,26 L360,12 L360,120 L0,120 Z"
-        fill="url(#fade-accent)"
-      />
-      <path
         d="M0,108 L40,104 L80,100 L120,93 L160,88 L200,80 L240,72 L280,64 L320,56 L360,46"
         fill="none"
-        stroke="var(--text-3)"
-        strokeOpacity="0.5"
+        stroke="var(--muted)"
         strokeWidth="1"
         strokeDasharray="2 3"
         strokeLinejoin="round"
@@ -181,17 +172,25 @@ export default function Page() {
     }
   }, [settings, hydrated]);
 
-  const isLocal = settings.provider === "ollama";
+  // Esc closes the topmost layer (No Dead Keys).
+  useEffect(() => {
+    if (!howOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setHowOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [howOpen]);
+
   const hasKey = settings.apiKey.trim().length > 0;
-  // The demo provider is keyless — only hosted providers are gated on a key.
-  const canRun = hydrated && (isLocal || hasKey) && prompt.trim().length > 0 && !loading;
+  const canRun = hydrated && hasKey && prompt.trim().length > 0 && !loading;
 
   const disabledReason = useMemo(() => {
     if (!hydrated) return undefined;
-    if (!isLocal && !hasKey) return "Add your LLM API key in settings to start.";
-    if (prompt.trim().length === 0) return "Type or pick an idea to begin.";
+    if (!hasKey) return "add your LLM API key in settings to start.";
+    if (prompt.trim().length === 0) return "type or pick an idea to begin.";
     return undefined;
-  }, [hydrated, isLocal, hasKey, prompt]);
+  }, [hydrated, hasKey, prompt]);
 
   function showExample() {
     const ex = getExampleResult();
@@ -250,72 +249,73 @@ export default function Page() {
   const showHero = !result && !loading;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 bg-surface-0/85 backdrop-blur-sm border-b border-border">
-        <div className="max-w-6xl mx-auto px-5 sm:px-7 py-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="font-mono text-sm tracking-tight text-text-1 font-medium">quantlab</span>
+    <div className="min-h-[100dvh] flex flex-col">
+      <header className="sticky top-0 z-30 bg-bg border-b border-border">
+        <div className="max-w-6xl mx-auto px-5 sm:px-7 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-4 min-w-0">
+            <span className="text-title font-bold">quantlab</span>
             <TabNav />
           </div>
 
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-3 relative">
             <button
               onClick={() => setHowOpen((v) => !v)}
-              className="btn btn-ghost text-xs h-8 px-2.5 hidden sm:inline-flex"
+              className="action text-small hidden sm:inline-flex"
               aria-expanded={howOpen}
             >
-              How it works
+              how it works
             </button>
             {howOpen && (
               <div
                 role="dialog"
-                aria-label="How it works"
+                aria-label="how it works"
                 onClick={() => setHowOpen(false)}
-                className="absolute right-0 top-10 z-40 panel-overlay px-4 py-4 w-[min(26rem,92vw)] animate-fade-in"
+                className="absolute right-0 top-9 z-40 panel-pop px-4 py-4 w-[min(26rem,92vw)] animate-rise text-left"
               >
-                <div className="micro-label mb-2">How it works</div>
-                <ol className="space-y-2.5 text-sm text-text-2">
+                <div className="text-label text-muted mb-2">how it works</div>
+                <ol className="space-y-2.5 text-small text-muted">
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">1.</span>
-                    <span><span className="text-text-1">Describe an idea</span> in plain English. It goes to the selected LLM. The free demo model by default, no API key needed.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">1.</span>
+                    <span><span className="text-fg">describe an idea</span> in plain English. we send it to your LLM provider with your API key.</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">2.</span>
-                    <span>The LLM emits <span className="text-text-1">structured rules</span> (indicators, entry conditions, exits, risk). Not code, just data.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">2.</span>
+                    <span>the LLM emits <span className="text-fg">structured rules</span> (indicators, entry conditions, exits, risk). not code, just data.</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">3.</span>
-                    <span>We pull real <span className="text-text-1">OHLCV history</span> from Yahoo Finance or Polymarket.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">3.</span>
+                    <span>we pull real <span className="text-fg">OHLCV history</span> from Yahoo Finance or Polymarket.</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">4.</span>
-                    <span>Our engine <span className="text-text-1">simulates every bar</span>, tracks every trade, computes Sharpe, drawdown, vs buy-and-hold.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">4.</span>
+                    <span>our engine <span className="text-fg">simulates every bar</span>, tracks every trade, computes Sharpe, drawdown, vs buy-and-hold.</span>
                   </li>
                 </ol>
-                <p className="mt-4 pt-3 border-t border-border text-xs text-text-3 leading-relaxed">
-                  Your key stays in your browser. Strategies are data, not executable code. Click anywhere to close.
+                <p className="mt-4 pt-3 border-t border-border text-meta text-dim italic leading-relaxed">
+                  your key stays in this browser. strategies are data, not executable code. click anywhere to close.
                 </p>
               </div>
             )}
+            <ThemeToggle />
             <a
               href="https://github.com/ankitsxchdeva/quantlab"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Source on GitHub"
-              className="btn btn-secondary h-8 px-2.5 text-xs flex items-center gap-1.5"
+              aria-label="source on GitHub"
+              className="action-chip text-small h-8 px-2.5"
             >
               <GithubLogo size={14} weight="bold" />
               <span className="hidden sm:inline">GitHub</span>
             </a>
             <button
               onClick={() => setSettingsOpen(true)}
-              aria-label="Open provider settings"
-              className="btn btn-secondary h-8 px-2.5 text-xs flex items-center gap-1.5"
+              aria-label="open provider settings"
+              className="action-chip text-small h-8 px-2.5"
             >
-              <Gear size={14} weight="bold" />
-              <span className="hidden sm:inline">Settings</span>
-              {hydrated && !isLocal && !hasKey && (
-                <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-danger animate-pulse-soft" aria-label="API key required for this provider" />
+              <Gear size={14} />
+              <span className="hidden sm:inline">settings</span>
+              {hydrated && !hasKey && (
+                <span className="badge" aria-label="API key required">key needed</span>
               )}
             </button>
           </div>
@@ -324,33 +324,42 @@ export default function Page() {
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-7 py-6 sm:py-10 space-y-6">
         {showHero && (
-          <section className="relative pt-2 pb-4 sm:pt-6 sm:pb-8">
+          <section className="pt-2 pb-4 sm:pt-6 sm:pb-8">
             <div className="grid lg:grid-cols-[1fr_280px] gap-6 lg:gap-10 items-end">
               <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-text-1 leading-[1.05]">
-                  <span className="block">Test the wildest trading idea you have.</span>
-                  <span className="block text-text-2 mt-1">In plain English.</span>
+                <h1 className="text-display text-fg">
+                  <span className="block">test the wildest trading idea you have.</span>
+                  <span className="block text-muted mt-1">in plain English.</span>
                 </h1>
-                <p className="mt-5 text-base sm:text-lg text-text-2 max-w-prose leading-relaxed">
-                  Your hypothesis. Real market data. Honest math.
+                <p className="mt-5 text-lede text-muted max-w-[68ch]">
+                  your hypothesis. real market data. honest math.
                 </p>
-                <p className="mt-1 text-sm text-text-3 max-w-prose">
-                  Works on stocks, ETFs, crypto, and Polymarket prediction markets.
+                <p className="mt-1 text-small text-dim max-w-[68ch]">
+                  works on stocks, ETFs, crypto, and Polymarket prediction markets.
                 </p>
 
                 <div className="mt-6 flex items-center gap-3">
                   <button
                     onClick={showExample}
-                    className="btn btn-secondary text-sm h-9"
+                    className="action-chip action-primary text-small"
                   >
-                    <span>See an example backtest</span>
-                    <ArrowRight size={12} weight="bold" />
+                    see an example backtest
                   </button>
-                  <span className="text-xs text-text-3 hidden sm:inline">No key required.</span>
+                  <span className="text-meta text-dim hidden sm:inline">no key required.</span>
                 </div>
+
+                <ol className="mt-8 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 text-meta text-dim">
+                  {["describe an idea", "compile to rules", "pull real history", "simulate every trade"].map((step, i, arr) => (
+                    <li key={step} className="flex items-baseline gap-2">
+                      <span className="font-mono">{i + 1}.</span>
+                      <span>{step}</span>
+                      {i < arr.length - 1 && <span className="mark ml-2 hidden sm:inline" aria-hidden="true">→</span>}
+                    </li>
+                  ))}
+                </ol>
               </div>
 
-              <div className="hidden lg:block h-[112px] opacity-80">
+              <div className="hidden lg:block h-[112px]">
                 <MiniEquitySVG />
               </div>
             </div>
@@ -373,29 +382,26 @@ export default function Page() {
         <PhaseIndicator active={loading} />
 
         {error && (
-          <div
-            role="alert"
-            className="px-4 py-3 flex items-start justify-between gap-3 rounded-lg border animate-fade-in"
-            style={{ borderColor: "color-mix(in oklch, var(--danger) 40%, transparent)", backgroundColor: "color-mix(in oklch, var(--danger) 10%, transparent)" }}
-          >
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-text-1">Run failed</div>
-              <div className="text-sm text-text-2 mt-1 break-words">{error}</div>
+          <div role="alert" className="border-t border-border pt-4 animate-rise">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-title font-bold">run failed</p>
+              <button
+                onClick={() => setError(null)}
+                className="action text-label shrink-0"
+                aria-label="dismiss error"
+              >
+                dismiss
+              </button>
             </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-xs text-text-3 hover:text-text-1 shrink-0"
-              aria-label="Dismiss error"
-            >
-              Dismiss
-            </button>
+            <p className="text-small text-muted mt-1 break-words">{error}</p>
+            <p className="text-small text-muted mt-1">adjust the prompt or your settings, then run again.</p>
           </div>
         )}
 
         {error && strategy && !result && (
-          <div className="space-y-2 animate-fade-in">
-            <p className="text-xs text-text-3">
-              The LLM did compile your idea before the run failed. Here is the strategy it produced:
+          <div className="space-y-2 animate-rise">
+            <p className="text-small text-muted">
+              the LLM did compile your idea before the run failed. here is the strategy it produced:
             </p>
             <StrategyView strategy={strategy} />
           </div>
@@ -403,51 +409,47 @@ export default function Page() {
 
         {result && strategy && (
           <div className="space-y-5">
-            <div className="flex items-center justify-between flex-wrap gap-3 panel px-4 py-3 animate-fade-in" style={{ animationDelay: "0ms" }}>
+            <div className="flex items-center justify-between flex-wrap gap-3 border-y border-border py-3 animate-rise" style={{ animationDelay: "0ms" }}>
               <MarketBadge market={result.market} />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {result.warnings.length > 0 && (
-                  <span className="text-xs text-warning">
-                    {result.warnings.length} warning{result.warnings.length === 1 ? "" : "s"}
+                  <span className="text-meta text-dim">
+                    {result.warnings.length} caveat{result.warnings.length === 1 ? "" : "s"}
                   </span>
                 )}
                 {timings ? (
-                  <span className="text-xs text-text-3 font-mono tabular-nums" title="Per-stage time measured on the server: LLM compile, market data fetch, backtest simulation.">
-                    LLM {fmtDur(timings.compileMs)} · data {fmtDur(timings.fetchMs)} · backtest {fmtDur(timings.backtestMs)}
+                  <span className="text-meta text-dim font-mono tabular-nums" title="per-stage time measured on the server: LLM compile, market data fetch, backtest simulation.">
+                    llm {fmtDur(timings.compileMs)} <span className="mark" aria-hidden="true">·</span> data {fmtDur(timings.fetchMs)} <span className="mark" aria-hidden="true">·</span> backtest {fmtDur(timings.backtestMs)}
                   </span>
                 ) : computeMs !== null ? (
-                  <span className="text-xs text-text-3 font-mono tabular-nums" title="Backtest simulation time for the demo dataset.">
+                  <span className="text-meta text-dim font-mono tabular-nums" title="backtest simulation time for the demo dataset.">
                     backtest {fmtDur(computeMs)}
                   </span>
                 ) : null}
                 <button
                   onClick={() => { setResult(null); setStrategy(null); setError(null); setComputeMs(null); setTimings(null); setRobustness(null); }}
-                  className="btn btn-secondary h-8 text-xs"
+                  className="action-chip text-small"
                 >
-                  Try another idea
+                  try another idea
                 </button>
               </div>
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
+            <div className="animate-rise" style={{ animationDelay: "40ms" }}>
               <ResultsHeadline result={result} strategy={strategy} />
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: "90ms" }}>
+            <div className="animate-rise" style={{ animationDelay: "80ms" }}>
               <LiveSignalCard trades={result.trades} assetLabel={result.market.label} />
             </div>
 
             {result.warnings.length > 0 && (
               <div
-                className="px-4 py-3 rounded-lg border text-sm animate-fade-in"
-                style={{
-                  animationDelay: "120ms",
-                  borderColor: "color-mix(in oklch, var(--warning) 40%, transparent)",
-                  backgroundColor: "color-mix(in oklch, var(--warning) 8%, transparent)",
-                }}
+                className="border-t border-border pt-4 animate-rise"
+                style={{ animationDelay: "120ms" }}
               >
-                <div className="micro-label mb-1.5">Caveats</div>
-                <ul className="list-disc list-inside space-y-0.5 text-text-2">
+                <div className="text-label text-muted mb-1.5">caveats</div>
+                <ul className="list-disc list-inside space-y-0.5 text-small text-muted">
                   {result.warnings.map((w, i) => (
                     <li key={i}>{w}</li>
                   ))}
@@ -455,51 +457,43 @@ export default function Page() {
               </div>
             )}
 
-            <div className="animate-fade-in" style={{ animationDelay: "140ms" }}>
+            <div className="animate-rise" style={{ animationDelay: "140ms" }}>
               <PriceChart bars={result.bars} trades={result.trades} symbol={result.market.label} timeframe={strategy.timeframe} />
             </div>
-            <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+            <div className="animate-rise" style={{ animationDelay: "160ms" }}>
               <MetricsCards metrics={result.metrics} />
             </div>
             {robustness && (robustness.split || robustness.monteCarlo) && (
-              <div className="animate-fade-in" style={{ animationDelay: "230ms" }}>
+              <div className="animate-rise" style={{ animationDelay: "180ms" }}>
                 <RobustnessCard report={robustness} />
               </div>
             )}
-            <div className="animate-fade-in" style={{ animationDelay: "260ms" }}>
+            <div className="animate-rise" style={{ animationDelay: "180ms" }}>
               <EquityChart equity={result.equity} benchmark={result.benchmark} bands={robustness?.monteCarlo?.equityBands} />
             </div>
-            <div className="animate-fade-in" style={{ animationDelay: "320ms" }}>
+            <div className="animate-rise" style={{ animationDelay: "200ms" }}>
               <StrategyView strategy={strategy} />
             </div>
-            <div className="animate-fade-in" style={{ animationDelay: "380ms" }}>
+            <div className="animate-rise" style={{ animationDelay: "200ms" }}>
               <TradeLog trades={result.trades} />
             </div>
           </div>
         )}
       </main>
 
-      <footer className="max-w-6xl mx-auto w-full px-5 sm:px-7 py-10 mt-8 text-xs text-text-3 border-t border-border">
+      <footer className="max-w-6xl mx-auto w-full px-5 sm:px-7 py-10 mt-8 border-t border-border">
         <div className="grid sm:grid-cols-[1fr_auto] gap-y-5 gap-x-8 items-start">
-          <div className="space-y-3 max-w-prose">
-            <p className="text-text-2 leading-relaxed">
-              Backtests model what would have happened, not what will. Use this to learn, not to invest. Indicators and metrics are computed from the rules you describe and the price history we fetch. Nothing here is investment advice.
+          <div className="space-y-3 max-w-[68ch]">
+            <p className="text-small text-muted leading-relaxed">
+              backtests model what would have happened, not what will. use this to learn, not to invest. indicators and metrics are computed from the rules you describe and the price history we fetch. nothing here is investment advice.
             </p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              <span>API keys never leave your browser</span>
-              <span>No accounts, no tracking, no upsells</span>
-              <a
-                href="https://github.com/ankitsxchdeva/quantlab"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-info hover:underline"
-              >
-                Source on GitHub
-              </a>
-            </div>
+            <p className="text-meta text-dim">
+              your API key never leaves this browser <span className="mark" aria-hidden="true">·</span> no accounts, no tracking, no upsells
+            </p>
           </div>
-          <div className="flex sm:flex-col gap-4 sm:gap-1 sm:items-end">
-            <span className="font-mono text-text-2">quantlab</span>
+          <div className="flex sm:flex-col gap-4 sm:gap-1 sm:items-end text-meta">
+            <span className="text-muted">quantlab</span>
+            <span className="text-dim">v0.1</span>
           </div>
         </div>
       </footer>

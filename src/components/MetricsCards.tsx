@@ -11,7 +11,7 @@ interface MetricsCardsProps {
 interface Cell {
   label: string;
   value: string;
-  tone?: "pos" | "neg" | "neutral";
+  tone?: "pos" | "neg" | "warn" | "neutral";
   hint?: string;
   tooltip: string;
 }
@@ -48,38 +48,39 @@ function MetricCell({
   return (
     <div className="relative">
       <div className="flex items-center gap-1.5">
-        <span className="micro-label">{cell.label}</span>
+        <span className="text-label text-muted">{cell.label}</span>
         <button
           type="button"
-          aria-label={`What is ${cell.label}?`}
+          aria-label={`what is ${cell.label}?`}
           aria-expanded={open}
           onClick={() => setOpenId(open ? null : id)}
           onMouseEnter={() => setOpenId(id)}
           onMouseLeave={() => setOpenId((curr) => (curr === id ? null : curr))}
-          className="text-text-3 hover:text-text-1 transition-colors duration-120 ease-out"
+          className="text-dim hover:text-fg transition-colors"
         >
           <InfoIcon />
         </button>
       </div>
       <div
         className={cn(
-          "font-mono tabular-nums",
-          // 2.25rem against 1.125rem. The verdict metrics have to win the
-          // glance; a flat scale across all twelve makes the reader do the
-          // ranking work themselves.
-          rank === "primary" ? "mt-2.5 text-2xl sm:text-3xl" : "mt-2 text-base sm:text-lg",
-          cell.tone === "pos" && "text-accent",
-          cell.tone === "neg" && "text-warning",
-          (!cell.tone || cell.tone === "neutral") && "text-text-1",
+          // hierarchy comes from weight and size per the spec's type tiers:
+          // primary cells are lede/bold, supporting cells are body/bold
+          rank === "primary"
+            ? "mt-2 text-lede font-bold font-mono tabular-nums"
+            : "mt-1.5 text-body font-bold font-mono tabular-nums",
+          cell.tone === "pos" && "text-data-pos",
+          cell.tone === "neg" && "text-data-neg",
+          cell.tone === "warn" && "text-data-warn",
+          (!cell.tone || cell.tone === "neutral") && "text-fg",
         )}
       >
         {cell.value}
       </div>
-      {cell.hint && <div className="mt-1 text-xs text-text-3">{cell.hint}</div>}
+      {cell.hint && <div className="mt-1 text-meta text-dim">{cell.hint}</div>}
       {open && (
         <div
           role="tooltip"
-          className="absolute z-20 top-full mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[260px] sm:max-w-[300px] panel-overlay px-3 py-2.5 text-xs text-text-2 leading-relaxed animate-fade-in"
+          className="absolute z-20 top-full mt-2 left-0 right-0 sm:left-auto sm:right-auto sm:min-w-[260px] sm:max-w-[300px] panel-pop px-3 py-2.5 text-small text-muted leading-relaxed"
         >
           {cell.tooltip}
         </div>
@@ -115,7 +116,7 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
   // Everything else explains or qualifies them.
   const primary: Cell[] = [
     {
-      label: "Total return",
+      label: "total return",
       value: fmtPct(metrics.totalReturnPct),
       tone: toneFromSign(metrics.totalReturnPct),
       tooltip: "What percent your starting equity grew or shrank by the end. Includes every trade plus any cash sitting idle.",
@@ -133,9 +134,9 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
       tooltip: "Return per unit of volatility. Above 1 is decent, above 2 is good, above 3 is rare. Negative means the equity curve was a roller coaster going the wrong way.",
     },
     {
-      label: "Max drawdown",
+      label: "max drawdown",
       value: fmtPct(-Math.abs(metrics.maxDrawdownPct)),
-      tone: metrics.maxDrawdownPct > 0 ? "neg" : "neutral",
+      tone: metrics.maxDrawdownPct > 0 ? "warn" : "neutral",
       tooltip: "The deepest peak-to-trough loss the strategy ever sat through. The pain you'd need to stomach to actually run it.",
     },
   ];
@@ -148,44 +149,44 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
       tooltip: "Like Sharpe, but only downside volatility counts against you; upside swings are free. Usually higher than Sharpe for the same strategy.",
     },
     {
-      label: "Win rate",
+      label: "win rate",
       value: `${fmtNum(metrics.winRatePct, 1)}%`,
       hint: `${metrics.totalTrades} trade${metrics.totalTrades === 1 ? "" : "s"}`,
       tooltip: "Share of trades that closed in profit. Less important than profit factor; many profitable strategies win only 30 to 40 percent of the time.",
     },
     {
-      label: "Profit factor",
+      label: "profit factor",
       value: metrics.profitFactor === null ? "n/a" : fmtNum(metrics.profitFactor, 2),
       tone: metrics.profitFactor === null ? "neutral" : metrics.profitFactor >= 1 ? "pos" : "neg",
       hint: metrics.profitFactor === null && metrics.totalTrades > 0 ? "no losing trades" : undefined,
       tooltip: "Total profit divided by total loss. Above 1 means winners outpaced losers. Above 2 is strong. Below 1 means the strategy bled. n/a means there were no losing trades to divide by.",
     },
     {
-      label: "Avg win",
+      label: "avg win",
       value: fmtPct(metrics.avgWinPct),
       tone: metrics.avgWinPct > 0 ? "pos" : "neutral",
       tooltip: "Average percentage gain across winning trades.",
     },
     {
-      label: "Avg loss",
+      label: "avg loss",
       value: fmtPct(metrics.avgLossPct),
       tone: metrics.avgLossPct < 0 ? "neg" : "neutral",
       tooltip: "Average percentage loss across losing trades. Healthy strategies keep this smaller than the average win, or win often enough to cover it.",
     },
     {
-      label: "Best trade",
+      label: "best trade",
       value: fmtPct(metrics.bestTradePct),
       tone: metrics.bestTradePct > 0 ? "pos" : "neutral",
       tooltip: "The single best trade, in percent.",
     },
     {
-      label: "Worst trade",
+      label: "worst trade",
       value: fmtPct(metrics.worstTradePct),
       tone: metrics.worstTradePct < 0 ? "neg" : "neutral",
       tooltip: "The single worst trade, in percent. A preview of the bad day this strategy will eventually hand you.",
     },
     {
-      label: "Time in market",
+      label: "time in market",
       value: `${fmtNum(metrics.exposurePct, 0)}%`,
       hint: `${metrics.totalTrades.toLocaleString()} total`,
       tooltip: "Fraction of bars the strategy held a position. Low exposure with decent returns can mean better risk-adjusted performance.",
@@ -198,7 +199,7 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
   // carries more padding, so the hierarchy reads in the spacing as well as the
   // type scale.
   return (
-    <section ref={sectionRef} className="panel overflow-visible">
+    <section ref={sectionRef} className="border-y border-border overflow-visible">
       <div className="grid grid-cols-2 lg:grid-cols-4">
         {primary.map((c, i) => (
           <div

@@ -46,7 +46,7 @@ export default function ResultsHeadline({ result, strategy }: ResultsHeadlinePro
           tone: "even",
           sentence: (
             <>
-              Roughly matched buy-and-hold ({fmtPct(benchmarkReturn)}).
+              roughly matched buy-and-hold ({fmtPct(benchmarkReturn)}).
             </>
           ),
         }
@@ -55,7 +55,7 @@ export default function ResultsHeadline({ result, strategy }: ResultsHeadlinePro
             tone: "win",
             sentence: (
               <>
-                That <span className="text-accent font-medium">beat buy-and-hold by {fmtPct(delta)}</span>.
+                that <span className="text-data-pos font-bold">beat buy-and-hold by {fmtPct(delta)}</span>.
               </>
             ),
           }
@@ -63,58 +63,51 @@ export default function ResultsHeadline({ result, strategy }: ResultsHeadlinePro
             tone: "loss",
             sentence: (
               <>
-                <span className="text-warning font-medium">Buy-and-hold would have made {fmtMoney(result.benchmark.finalEquity - final)} more</span> ({fmtPct(benchmarkReturn)} vs {fmtPct(strategyReturn)}).
+                <span className="text-data-neg font-bold">buy-and-hold would have made {fmtMoney(result.benchmark.finalEquity - final)} more</span> ({fmtPct(benchmarkReturn)} vs {fmtPct(strategyReturn)}).
               </>
             ),
           };
 
   const finalEmphasisClass = cn(
-    "tabular",
-    verdict.tone === "win" && "text-accent",
-    verdict.tone === "loss" && "text-warning",
-    verdict.tone === "even" && "text-text-1",
+    verdict.tone === "win" && "text-data-pos",
+    verdict.tone === "loss" && "text-data-neg",
+    verdict.tone === "even" && "text-fg",
   );
 
   return (
-    <section className="panel-raised relative overflow-hidden">
-      <div className="absolute inset-0 grid-lines opacity-[0.18] pointer-events-none" aria-hidden="true" />
-      <div className="relative px-6 py-8 sm:px-10 sm:py-10">
-        <div className="flex items-center gap-2 mb-5">
-          <span className="micro-label">Result</span>
-          <span className="h-px w-8 bg-border" aria-hidden="true" />
-          <span className="micro-label truncate max-w-[40ch]" title={strategy.name}>{strategy.name}</span>
-        </div>
+    <section className="border-t border-border pt-5">
+      <div className="flex items-baseline gap-2 text-label text-muted">
+        <span>result</span>
+        <span className="mark" aria-hidden="true">·</span>
+        <span className="truncate" title={strategy.name}>{strategy.name}</span>
+      </div>
 
-        <p className="text-text-2 text-base sm:text-lg mb-3">Your strategy</p>
+      <p className="mt-4 text-display font-mono tabular-nums">
+        <span className="text-muted">{fmtMoney(initial)}</span>
+        <span className="text-dim"> → </span>
+        <span className={finalEmphasisClass}>{fmtMoney(final)}</span>
+      </p>
 
-        <p className="text-3xl sm:text-4xl lg:text-5xl leading-[1.1] tracking-tight text-text-2 font-medium">
-          <span className="tabular text-text-1">{fmtMoney(initial)}</span>
-          <span className="text-text-2"> → </span>
-          <span className={finalEmphasisClass}>{fmtMoney(final)}</span>
+      <p className="mt-2 text-lede text-muted">
+        <span className="tabular">{fmtPct(strategyReturn)}</span>{" "}
+        over <span className="tabular">{years.toFixed(1)}</span> years.{" "}
+        {verdict.sentence}
+      </p>
+
+      {costsMoved && (
+        <p className="mt-1.5 text-small text-dim">
+          Gross <span className="tabular">{fmtPct(grossReturn)}</span>, net{" "}
+          <span className="tabular">{fmtPct(strategyReturn)}</span> after{" "}
+          <span className="tabular">{fmtMoney(totalCosts)}</span> in costs.
         </p>
+      )}
 
-        <p className="mt-3 text-base sm:text-lg text-text-2 leading-relaxed">
-          <span className="tabular">{fmtPct(strategyReturn)}</span>{" "}
-          over <span className="tabular">{years.toFixed(1)}</span> years.
-          {" "}
-          {verdict.sentence}
-        </p>
-
-        {costsMoved && (
-          <p className="mt-1.5 text-sm text-text-3">
-            Gross <span className="tabular">{fmtPct(grossReturn)}</span>, net{" "}
-            <span className="tabular">{fmtPct(strategyReturn)}</span> after{" "}
-            <span className="tabular">{fmtMoney(totalCosts)}</span> in costs.
-          </p>
-        )}
-
-        <div className="mt-5 pt-5 border-t border-border flex flex-wrap items-baseline gap-x-5 gap-y-1.5 text-sm text-text-3">
-          <span>
-            <span className="tabular text-text-2">{result.metrics.totalTrades.toLocaleString()}</span> trade{result.metrics.totalTrades === 1 ? "" : "s"}
-          </span>
-          <span className="text-border" aria-hidden="true">·</span>
-          <span>{span.replace(/^over [^ ]+ years? of /, "").replace(/^over [^ ]+ months? of /, "").replace(/^over \d+ days? of /, "")}</span>
-        </div>
+      <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-baseline gap-x-4 gap-y-1 text-meta text-dim">
+        <span>
+          <span className="tabular text-muted">{result.metrics.totalTrades.toLocaleString()}</span> trade{result.metrics.totalTrades === 1 ? "" : "s"}
+        </span>
+        <span className="mark" aria-hidden="true">·</span>
+        <span>{span.replace(/^over [^ ]+ years? of /, "").replace(/^over [^ ]+ months? of /, "").replace(/^over \d+ days? of /, "")}</span>
       </div>
     </section>
   );

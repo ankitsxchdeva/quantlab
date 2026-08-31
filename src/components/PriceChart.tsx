@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Bar, Trade } from "@/lib/types";
-import { chartTheme } from "@/lib/chartTheme";
+import { chartTheme, withAlpha } from "@/lib/chartTheme";
+import { onThemeChange } from "@/lib/theme";
 
 interface PriceChartProps {
   bars: Bar[];
@@ -14,6 +15,9 @@ interface PriceChartProps {
 
 export default function PriceChart({ bars, trades, symbol, timeframe, height = 360 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // Canvas can't see a theme change; bumping this rebuilds with new tokens.
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => onThemeChange(() => setThemeTick((t) => t + 1)), []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -28,16 +32,15 @@ export default function PriceChart({ bars, trades, symbol, timeframe, height = 3
 
       // Resolved here rather than at module scope: the tokens only exist
       // once the document has a computed style.
-      const { accent: ACCENT, warning: WARNING, text2: TEXT_2, border: BORDER, surface1: SURFACE_1 } =
-        chartTheme();
+      const { pos: POS, neg: NEG, fg: FG, muted: MUTED, border: BORDER } = chartTheme();
 
       const chart = mod.createChart(container, {
         width: container.clientWidth,
         height,
         layout: {
-          background: { color: SURFACE_1 },
-          textColor: TEXT_2,
-          fontFamily: "var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace",
+          background: { type: mod.ColorType.Solid, color: "transparent" },
+          textColor: withAlpha(MUTED, 0.75),
+          fontFamily: "monospace",
           fontSize: 11,
         },
         grid: {
@@ -50,11 +53,12 @@ export default function PriceChart({ bars, trades, symbol, timeframe, height = 3
         autoSize: false,
       });
 
+      // Candles are data, so the data hues carry them.
       const series = chart.addCandlestickSeries({
-        upColor: ACCENT,
-        downColor: WARNING,
-        wickUpColor: ACCENT,
-        wickDownColor: WARNING,
+        upColor: POS,
+        downColor: NEG,
+        wickUpColor: POS,
+        wickDownColor: NEG,
         borderVisible: false,
       });
 
@@ -77,14 +81,14 @@ export default function PriceChart({ bars, trades, symbol, timeframe, height = 3
           {
             time: entryTime,
             position: (isLong ? "belowBar" : "aboveBar") as "belowBar" | "aboveBar",
-            color: ACCENT,
+            color: FG,
             shape: (isLong ? "arrowUp" : "arrowDown") as "arrowUp" | "arrowDown",
-            text: isLong ? "Long" : "Short",
+            text: isLong ? "long" : "short",
           },
           {
             time: exitTime,
             position: (isLong ? "aboveBar" : "belowBar") as "belowBar" | "aboveBar",
-            color: profit ? ACCENT : WARNING,
+            color: profit ? POS : NEG,
             shape: (isLong ? "arrowDown" : "arrowUp") as "arrowUp" | "arrowDown",
             text: `${profit ? "+" : ""}${t.pnlPct.toFixed(2)}%`,
           },
@@ -111,40 +115,40 @@ export default function PriceChart({ bars, trades, symbol, timeframe, height = 3
       disposed = true;
       if (cleanup) cleanup();
     };
-  }, [bars, trades, height]);
+  }, [bars, trades, height, themeTick]);
 
   if (bars.length === 0) {
     return (
-      <div className="panel p-5 text-sm text-text-3" style={{ height }}>
-        No price data.
+      <div className="border-t border-border pt-4 text-small text-muted" style={{ height }}>
+        no price data.
       </div>
     );
   }
 
   return (
-    <section className="panel p-4">
+    <section className="border-t border-border pt-4">
       <div className="flex items-baseline justify-between mb-3 gap-4">
         <div className="flex items-baseline gap-3 min-w-0">
-          <h3 className="text-sm font-medium text-text-1 truncate">{symbol ?? "Price"}</h3>
-          <span className="text-xs font-mono tabular-nums text-text-3 whitespace-nowrap">
+          <h3 className="text-title font-bold truncate">{symbol ?? "price"}</h3>
+          <span className="text-meta font-mono tabular-nums text-dim whitespace-nowrap">
             {timeframe ? `${timeframe} · ` : ""}{bars.length.toLocaleString()} bars · {trades.length} trade{trades.length === 1 ? "" : "s"}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-text-3">
-          <span className="flex items-center gap-1.5" title="Trade entry">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden="true">
+        <div className="flex items-center gap-3 text-meta text-dim">
+          <span className="flex items-center gap-1.5" title="trade entry">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-fg" aria-hidden="true">
               <path d="M12 4 L20 20 L4 20 Z" />
-            </svg> Entry
+            </svg> entry
           </span>
-          <span className="flex items-center gap-1.5" title="Profitable exit">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden="true">
+          <span className="flex items-center gap-1.5" title="profitable exit">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-data-pos" aria-hidden="true">
               <path d="M12 20 L20 4 L4 4 Z" />
-            </svg> Win
+            </svg> win
           </span>
-          <span className="flex items-center gap-1.5" title="Losing exit">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-warning" aria-hidden="true">
+          <span className="flex items-center gap-1.5" title="losing exit">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-data-neg" aria-hidden="true">
               <path d="M12 20 L20 4 L4 4 Z" />
-            </svg> Loss
+            </svg> loss
           </span>
         </div>
       </div>

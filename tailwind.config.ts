@@ -1,69 +1,64 @@
 import type { Config } from "tailwindcss";
 
+/*
+ * Tailwind mapping of the Colophon tokens (~/Documents/design/tokens.css,
+ * v0.4). Type tiers are named per the spec's scale; there are no other sizes.
+ * Data hues are for data values only (§5), never chrome.
+ */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        "surface-0": "var(--surface-0)",
-        "surface-1": "var(--surface-1)",
-        "surface-2": "var(--surface-2)",
-        "surface-3": "var(--surface-3)",
+        bg: "var(--bg)",
+        fg: "var(--fg)",
+        muted: "var(--muted)",
         border: "var(--border)",
-        "border-strong": "var(--border-strong)",
-        "text-1": "var(--text-1)",
-        "text-2": "var(--text-2)",
-        "text-3": "var(--text-3)",
         accent: "var(--accent)",
-        "accent-soft": "var(--accent-soft)",
-        "accent-ink": "var(--accent-ink)",
-        danger: "var(--danger)",
-        "danger-soft": "var(--danger-soft)",
-        warning: "var(--warning)",
-        info: "var(--info)",
-        "chart-benchmark": "var(--chart-benchmark)",
+        "accent-hover": "var(--accent-hover)",
+        editorial: "var(--editorial)",
+        "data-pos": "var(--data-pos)",
+        "data-neg": "var(--data-neg)",
+        "data-warn": "var(--data-warn)",
+        "data-bench": "var(--data-bench)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
       },
+      /* the spec's type scale (§2). display is one use per page. */
       fontSize: {
-        xs: ["0.75rem", { lineHeight: "1.1rem", letterSpacing: "0" }],
-        sm: ["0.875rem", { lineHeight: "1.35rem", letterSpacing: "0" }],
-        base: ["1rem", { lineHeight: "1.5rem", letterSpacing: "0" }],
-        lg: ["1.125rem", { lineHeight: "1.6rem", letterSpacing: "-0.005em" }],
-        xl: ["1.375rem", { lineHeight: "1.75rem", letterSpacing: "-0.01em" }],
-        "2xl": ["1.75rem", { lineHeight: "2.1rem", letterSpacing: "-0.015em" }],
-        "3xl": ["2.25rem", { lineHeight: "2.55rem", letterSpacing: "-0.02em" }],
-        "4xl": ["3rem", { lineHeight: "3.3rem", letterSpacing: "-0.025em" }],
-        "5xl": ["3.75rem", { lineHeight: "4rem", letterSpacing: "-0.03em" }],
+        badge: ["10px", { lineHeight: "1.4" }],
+        meta: ["11px", { lineHeight: "1.4" }],
+        label: ["12px", { lineHeight: "1.5" }],
+        small: ["13px", { lineHeight: "1.5" }],
+        title: ["14px", { lineHeight: "1.5" }],
+        body: ["15px", { lineHeight: "1.65" }],
+        lede: ["17px", { lineHeight: "1.6" }],
+        display: ["32px", { lineHeight: "1.2", letterSpacing: "-0.5px" }],
       },
+      /* the one clock: every state transition, same tempo (§1) */
       transitionTimingFunction: {
-        out: "cubic-bezier(0.22, 1, 0.36, 1)",
+        DEFAULT: "cubic-bezier(0.25, 1, 0.5, 1)",
       },
       transitionDuration: {
-        120: "120ms",
-        180: "180ms",
-        240: "240ms",
+        DEFAULT: "150ms",
       },
       keyframes: {
+        /* entrances land exactly: rise 14px and fade, then rest */
+        rise: {
+          from: { opacity: "0", transform: "translateY(14px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        /* skeleton/progress pulse: opacity only, never position */
         "pulse-soft": {
           "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.55" },
-        },
-        sweep: {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(200%)" },
-        },
-        "fade-in": {
-          from: { opacity: "0", transform: "translateY(4px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
+          "50%": { opacity: "0.45" },
         },
       },
       animation: {
-        "pulse-soft": "pulse-soft 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        sweep: "sweep 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite",
-        "fade-in": "fade-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        rise: "rise 400ms cubic-bezier(0.25, 1, 0.5, 1) both",
+        "pulse-soft": "pulse-soft 1.2s ease-in-out infinite",
       },
     },
   },

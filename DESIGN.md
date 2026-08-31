@@ -1,110 +1,38 @@
-# quantlab design system
+# quantlab design
 
-## Scene
+All design decisions follow ~/Documents/design/DESIGN.md (Colophon, v0.4,
+canonical lane). Do not invent colors, fonts, spacing, or motion outside it.
+Where any skill or model suggestion conflicts, the spec wins.
 
-A retail quant at a kitchen table, late evening, MacBook screen. They have a hypothesis and twenty minutes before they go to bed. They want the tool to feel like a serious lab notebook · not a casino, not a terminal · and they want their idea to look smart when it works.
+This file holds only quantlab's project-specific addenda, which extend the
+spec without overriding it.
 
-Dark mode is the default. Light is supported but not the hero.
+## Addenda
 
-## Color
+- **Data hues are data.** `--data-pos` / `--data-neg` / `--data-warn` appear
+  on P&L numbers, candlesticks, trade markers, win/loss counts, robustness
+  verdicts, and edge figures. `--data-bench` is the neutral comparison series
+  (buy & hold, Monte Carlo bands). Chrome (errors, empty states, labels,
+  hints) is muted ink that names the retry, never red, never amber.
+- **Charts resolve tokens at runtime** through `src/lib/chartTheme.ts`;
+  canvas cannot read CSS variables. Never hardcode a hex in a chart
+  component. Charts rebuild on theme change via `onThemeChange`
+  (`src/lib/theme.ts`). Plot backgrounds are transparent; the strategy's own
+  equity curve is the one licensed accent series.
+- **Theme** mechanics are the spec's: `data-theme` on `<html>`, persisted to
+  localStorage as `quantlab.theme`, absent choice follows
+  `prefers-color-scheme`. The header toggle (`src/components/ThemeToggle.tsx`)
+  names the action, not the state.
+- **Type scale mapping.** Headline figures (the results money line) use the
+  display tier once per page; metric values use lede/body in bold mono. Acute
+  hierarchy comes from weight and the dimming ladder, not extra sizes.
+- **Voice.** Chrome, labels, buttons, and short notes are lowercase; proper
+  nouns and acronyms keep case. Longer explanatory prose (tooltips, the
+  disclaimer) keeps sentence case.
+- **The one image** is the hero mini equity curve: two strokes, line work
+  only, no fills or gradients.
 
-Strategy: **Restrained** with a single accent reserved for primary action and positive outcomes.
+## History
 
-Neutrals are warm-tinted (slight amber bias, low chroma) so the UI doesn't read as cold or terminal. We never use `#000` or `#fff`.
-
-OKLCH ramp (dark mode):
-
-| Token | OKLCH | Hex (≈) | Use |
-|---|---|---|---|
-| `--surface-0` | `oklch(0.16 0.005 80)` | `#121110` | App background |
-| `--surface-1` | `oklch(0.20 0.006 80)` | `#171613` | Panels |
-| `--surface-2` | `oklch(0.24 0.006 80)` | `#211f1c` | Hover, raised |
-| `--border` | `oklch(0.30 0.006 80)` | `#2f2d2a` | Hairlines |
-| `--border-strong` | `oklch(0.40 0.008 80)` | `#464340` | Active borders |
-| `--text-1` | `oklch(0.96 0.006 80)` | `#f4f1ed` | Primary text |
-| `--text-2` | `oklch(0.72 0.008 80)` | `#a7a49f` | Secondary text |
-| `--text-3` | `oklch(0.52 0.008 80)` | `#6b6864` | Tertiary, muted |
-
-Semantic:
-
-| Token | OKLCH | Hex (≈) | Use |
-|---|---|---|---|
-| `--accent` | `oklch(0.78 0.16 145)` | `#6ed274` | Primary action, positive outcomes |
-| `--accent-soft` | `oklch(0.30 0.06 145)` | `#1d3a26` | Accent backgrounds |
-| `--danger` | `oklch(0.68 0.20 25)` | `#fc5855` | Losses, errors, stops |
-| `--warning` | `oklch(0.80 0.13 75)` | `#eeb154` | Warnings, drawdowns |
-| `--info` | `oklch(0.72 0.10 240)` | `#67addd` | Informational, links |
-| `--chart-benchmark` | `oklch(0.60 0.008 80)` | `#8b8680` | Benchmark series on the equity chart |
-
-Accent is reserved: primary CTAs, positive return numbers, the resolved "current" tab. Decoration uses tinted neutrals.
-
-## Typography
-
-One family: **Geist** (variable). Mono pairing: **Geist Mono** for numbers, tickers, and code-shaped content. System fallback always: `system-ui, -apple-system, "Segoe UI", sans-serif`.
-
-Fixed rem scale, 1.2 ratio:
-
-| Token | Size | Use |
-|---|---|---|
-| `text-xs` | 0.75 rem | Captions, chips, labels |
-| `text-sm` | 0.875 rem | Body small, table cells, hints |
-| `text-base` | 1 rem | Body |
-| `text-lg` | 1.125 rem | Subheads, card titles |
-| `text-xl` | 1.375 rem | Section heads |
-| `text-2xl` | 1.75 rem | Page heads |
-| `text-3xl` | 2.25 rem | Hero head |
-| `text-4xl` | 3 rem | Hero head, desktop |
-
-Weights: 400 (body), 500 (UI default), 600 (emphasis), 700 (hero only).
-
-Charts render to canvas and cannot read CSS variables, so they resolve tokens at runtime through `src/lib/chartTheme.ts`. Never hardcode a hex in a chart component; that is how the chart palette drifted from the UI palette once already.
-
-Numbers are always `font-mono`, `tabular-nums`. Dollar amounts in the headline are also mono, slightly larger weight (500).
-
-Tracking:
-- `tracking-tight` (-0.02em) on display sizes (xl+)
-- `tracking-normal` on body
-- `tracking-wider` (+0.05em), uppercase, on micro-labels
-
-Line height: 1.5 body, 1.2 display, 1.0 single-line numerics.
-
-## Layout
-
-- Container max-width: 72rem (1152px) for product surfaces, 64rem for the hero.
-- Vertical rhythm: 1.25rem / 2rem / 3rem (between sections, in increasing structural weight).
-- Side padding: 1.25rem mobile, 2rem tablet, 2.5rem desktop.
-- Panels: 1px hairline, no shadows by default. Raised state uses `surface-2` background, not shadow.
-- Overlays are the one exception. Popovers and tooltips float above the flow, so they use `.panel-overlay`: `surface-2` plus a shadow tinted toward the surface hue. An untinted black shadow reads as a hole punched in a warm-neutral UI.
-- Avoid identical card grids. The features row uses 3 different sizes/treatments, not 3 identical icon-cards.
-
-## Components
-
-Every interactive component has: default, hover, focus, active, disabled, loading, error.
-
-- Buttons: 36px height default, 8px radius, mono label optional, no gradient. Primary uses `--accent` background, black text; secondary uses `surface-1` with `border` hairline; ghost uses transparent + border on hover only.
-- Inputs: 40px height default, 6px radius, focus ring uses `--border-strong` (not accent · accent is reserved). Placeholder uses `--text-3`.
-- Tabs: underline-style, 2px accent on active, `--text-2` on inactive.
-- Chips (example prompts): pill shape, mono label optional, hover lifts the border one notch.
-- Cards (metrics, etc.): use 1px hairline, never side-stripe accents. Number is the hero; label sits above in `text-xs uppercase tracking-wider text-text-3`.
-
-## Motion
-
-Durations: 120ms (hover/focus), 180ms (state change), 240ms (reveal). Easing: `cubic-bezier(0.22, 1, 0.36, 1)` · ease-out-quart, no bounce.
-
-Animated only:
-- Opacity, transform (translate, scale) · never layout properties
-- Border color, background color (on hover/active/focus)
-- Loading bar in the phase indicator (a thin progress strip, not a spinner)
-
-No orchestrated page-load sequences. No bouncy enters.
-
-## Mobile
-
-Sticky header collapses to logo + cog. Strategy input fills the screen. Examples scroll horizontally as a chip rail. Charts are vertically stacked, full width. Metric grid becomes 2-col then 1-col on narrow.
-
-## What this design isn't
-
-- Not Bloomberg (no amber-on-black terminal, no overload of data on one screen).
-- Not Robinhood (no rounded blobs, no confetti, no gamification).
-- Not "AI SaaS hero" (no gradient text, no three identical feature cards, no "powered by AI" badge).
-- Not crypto neon (no full-saturation greens or pinks on pure black).
+Pre-Colophon, quantlab ran a standalone system (warm amber neutrals, Geist,
+green accent, dark-only). Superseded in favor of tracking the shared spec.

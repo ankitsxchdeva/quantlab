@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { GithubLogo } from "@phosphor-icons/react";
 import TabNav from "@/components/TabNav";
+import ThemeToggle from "@/components/ThemeToggle";
 import SettingsPanel, { type LLMSettings } from "@/components/SettingsPanel";
 import { apiUrl } from "@/lib/apiBase";
 import type { ParlayEvaluation } from "@/lib/arb/parlay";
@@ -90,9 +92,9 @@ function c(n: number): string {
 }
 
 function EdgeCell({ edge }: { edge: number }) {
-  const positive = edge > 0;
+  const color = edge > 0 ? "text-data-pos" : edge < 0 ? "text-data-neg" : "text-muted";
   return (
-    <span className={`font-mono tabular-nums ${positive ? "text-accent" : "text-text-2"}`}>
+    <span className={`font-mono tabular-nums ${color}`}>
       {c(edge)}
     </span>
   );
@@ -101,42 +103,44 @@ function EdgeCell({ edge }: { edge: number }) {
 function EvaluationCard({ e }: { e: ParlayEvaluation }) {
   const positive = e.edgeCentsPerContract > 0;
   return (
-    <div className="panel p-4 space-y-3">
+    <div className="border-t border-border pt-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <span className="font-mono text-xs text-text-1 break-all">{e.ticker}</span>
+        <span className="font-mono text-label text-fg break-all">{e.ticker}</span>
         <span
-          className={`shrink-0 text-xs px-2 py-0.5 rounded ${
-            positive ? "bg-accent-soft text-accent" : "bg-surface-2 text-text-3"
-          }`}
+          className={
+            positive
+              ? "shrink-0 text-small font-bold text-data-pos"
+              : "shrink-0 text-small text-muted"
+          }
         >
           {positive ? "edge" : "no edge"}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-label">
         <div>
-          <div className="micro-label">Cost</div>
-          <div className="font-mono tabular-nums text-text-1">{c(e.costCents)}</div>
+          <div className="text-muted lowercase">cost</div>
+          <div className="font-mono tabular-nums text-fg">{c(e.costCents)}</div>
         </div>
         <div>
-          <div className="micro-label">Fees</div>
-          <div className="font-mono tabular-nums text-text-1">{c(e.feeCentsPerContract)}</div>
+          <div className="text-muted lowercase">fees</div>
+          <div className="font-mono tabular-nums text-fg">{c(e.feeCentsPerContract)}</div>
         </div>
         <div>
-          <div className="micro-label">Edge</div>
+          <div className="text-muted lowercase">edge</div>
           <div>
             <EdgeCell edge={e.edgeCentsPerContract} />
           </div>
         </div>
         <div>
-          <div className="micro-label">Max size</div>
-          <div className="font-mono tabular-nums text-text-1">{e.maxSize.toFixed(0)}</div>
+          <div className="text-muted lowercase">max size</div>
+          <div className="font-mono tabular-nums text-fg">{e.maxSize.toFixed(0)}</div>
         </div>
       </div>
 
-      <div className="text-xs text-text-3">
+      <div className="text-label text-dim">
         Buy YES at {c(e.parlayAskCents)}. Breaks even at{" "}
-        <span className="font-mono tabular-nums text-text-2">
+        <span className="font-mono tabular-nums text-muted">
           {c(e.breakevenParlayAskCents)}
         </span>
         {e.settledLegs > 0 && ` · ${e.settledLegs} leg${e.settledLegs > 1 ? "s" : ""} already settled`}
@@ -144,9 +148,9 @@ function EvaluationCard({ e }: { e: ParlayEvaluation }) {
 
       <div className="border-t border-border pt-2 space-y-1">
         {e.legs.map((leg) => (
-          <div key={leg.ticker} className="flex items-center justify-between gap-3 text-xs">
-            <span className="font-mono text-text-3 truncate">{leg.ticker}</span>
-            <span className="shrink-0 font-mono tabular-nums text-text-2">
+          <div key={leg.ticker} className="flex items-center justify-between gap-3 text-label">
+            <span className="font-mono text-dim truncate">{leg.ticker}</span>
+            <span className="shrink-0 font-mono tabular-nums text-muted">
               buy {leg.buy.toUpperCase()} @ {c(leg.askCents)} · {leg.size.toFixed(0)}
             </span>
           </div>
@@ -170,44 +174,44 @@ function ConstraintCard({ e }: { e: DutchBookEvaluation }) {
   const mispriced = bidSum > 100 || askSum < 100;
 
   return (
-    <div className="panel p-4 space-y-3">
+    <div className="border-t border-border pt-4 space-y-3">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm text-text-1">{e.title || e.eventTicker}</span>
-        <span className="text-xs font-mono text-text-3 shrink-0">{e.legCount} legs</span>
+        <span className="text-title font-bold text-fg">{e.title || e.eventTicker}</span>
+        <span className="text-label font-mono text-dim shrink-0">{e.legCount} legs</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 text-xs">
+      <div className="grid grid-cols-3 gap-3 text-label">
         <div>
-          <div className="text-text-3">Sell all at bid</div>
-          <div className="font-mono tabular-nums text-text-1">{bidSum.toFixed(1)}c</div>
-          <div className="text-text-3 mt-0.5">
+          <div className="text-dim lowercase">sell all at bid</div>
+          <div className="font-mono tabular-nums text-fg">{bidSum.toFixed(1)}c</div>
+          <div className="text-dim mt-0.5">
             net {c(e.sellTaker?.edgeCents ?? 0)} · size {e.sellTaker?.maxSize ?? "-"}
           </div>
         </div>
         <div>
-          <div className="text-text-3">Sell all at mid</div>
-          <div className="font-mono tabular-nums text-text-1">
+          <div className="text-dim lowercase">sell all at mid</div>
+          <div className="font-mono tabular-nums text-fg">
             {e.sellMakerAtMid ? `${e.sellMakerAtMid.grossCents.toFixed(1)}c` : "n/a"}
           </div>
-          <div className="text-text-3 mt-0.5">
+          <div className="text-dim mt-0.5">
             {e.sellMakerAtMid ? `net ${c(e.sellMakerAtMid.edgeCents)} · must fill` : "maker fee unknown"}
           </div>
         </div>
         <div>
-          <div className="text-text-3">Buy all at ask</div>
-          <div className="font-mono tabular-nums text-text-1">{askSum.toFixed(1)}c</div>
-          <div className="text-text-3 mt-0.5">needs exhaustive set</div>
+          <div className="text-dim lowercase">buy all at ask</div>
+          <div className="font-mono tabular-nums text-fg">{askSum.toFixed(1)}c</div>
+          <div className="text-dim mt-0.5">needs exhaustive set</div>
         </div>
       </div>
 
-      <div className="border-t border-border pt-2 text-xs leading-relaxed">
+      <div className="border-t border-border pt-2 text-label leading-relaxed">
         {mispriced ? (
-          <span className="text-accent">
+          <span className="text-data-pos">
             The bid/ask sums straddle $1 the wrong way, which is a genuine mispricing rather
             than a spread artifact.
           </span>
         ) : (
-          <span className="text-text-3">
+          <span className="text-dim">
             Bids sum to {bidSum.toFixed(1)}c, so the set is fairly priced. Aggregate spread is{" "}
             <span className="font-mono">{e.aggregateSpreadCents.toFixed(1)}c</span>, and the
             mid-price edge is about half of it. That is market-making revenue for quoting every
@@ -221,30 +225,30 @@ function ConstraintCard({ e }: { e: DutchBookEvaluation }) {
 
 function Coverage({ coverage }: { coverage: ScanCoverage }) {
   const rows: [string, string][] = [
-    ["Markets scanned", coverage.marketsScanned.toLocaleString()],
-    ["Pages", `${coverage.pagesScanned}${coverage.exhausted ? " (all)" : ""}`],
-    ["Parlays found", coverage.parlaysFound.toLocaleString()],
-    ["With a live offer", coverage.parlaysQuoted.toLocaleString()],
-    ["Fully priced", coverage.parlaysPriced.toLocaleString()],
-    ["Leg lookups", coverage.legFetches.toLocaleString()],
-    ["Skipped: no offer", coverage.skippedNoOffer.toLocaleString()],
-    ["Skipped: unpriceable", coverage.skippedUnpriceable.toLocaleString()],
-    ["Skipped: budget", coverage.skippedBudget.toLocaleString()],
-    ["Elapsed", `${(coverage.elapsedMs / 1000).toFixed(1)}s`],
+    ["markets scanned", coverage.marketsScanned.toLocaleString()],
+    ["pages", `${coverage.pagesScanned}${coverage.exhausted ? " (all)" : ""}`],
+    ["parlays found", coverage.parlaysFound.toLocaleString()],
+    ["with a live offer", coverage.parlaysQuoted.toLocaleString()],
+    ["fully priced", coverage.parlaysPriced.toLocaleString()],
+    ["leg lookups", coverage.legFetches.toLocaleString()],
+    ["skipped: no offer", coverage.skippedNoOffer.toLocaleString()],
+    ["skipped: unpriceable", coverage.skippedUnpriceable.toLocaleString()],
+    ["skipped: budget", coverage.skippedBudget.toLocaleString()],
+    ["elapsed", `${(coverage.elapsedMs / 1000).toFixed(1)}s`],
   ];
   return (
-    <div className="panel p-4">
-      <div className="micro-label mb-3">Coverage</div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
+    <div className="border-t border-border pt-4 space-y-3">
+      <div className="text-label text-muted lowercase">coverage</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-label">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-2 border-b border-border/50 pb-1">
-            <span className="text-text-3">{label}</span>
-            <span className="font-mono tabular-nums text-text-1">{value}</span>
+          <div key={label} className="flex justify-between gap-2 border-b border-border pb-1">
+            <span className="text-dim">{label}</span>
+            <span className="font-mono tabular-nums text-fg">{value}</span>
           </div>
         ))}
       </div>
       {!coverage.exhausted && (
-        <p className="mt-3 text-xs text-text-3 leading-relaxed">
+        <p className="text-label text-dim leading-relaxed">
           This is a bounded sample, not the whole exchange. The full open set is roughly a
           million markets and takes about four minutes to walk, so a scan inside a request
           budget cannot see all of it. &quot;No opportunities&quot; here means none in what
@@ -258,23 +262,23 @@ function Coverage({ coverage }: { coverage: ScanCoverage }) {
 /** An LLM's proposed legs, always shown before any price derived from them. */
 function ResolutionCard({ r }: { r: Resolution }) {
   return (
-    <div className="panel p-4 space-y-3">
-      <div className="micro-label">Recovered legs</div>
+    <div className="border-t border-border pt-4 space-y-3">
+      <div className="text-label text-muted lowercase">recovered legs</div>
 
       {r.legs.length > 0 && (
         <div className="space-y-2">
           {r.legs.map((leg) => (
-            <div key={leg.ticker} className="text-xs border-b border-border/50 pb-2">
+            <div key={leg.ticker} className="text-label border-b border-border pb-2">
               <div className="flex justify-between gap-3">
-                <span className="font-mono text-text-1 truncate">{leg.ticker}</span>
+                <span className="font-mono text-fg truncate">{leg.ticker}</span>
                 <span
-                  className={`shrink-0 font-mono ${leg.confidence === "high" ? "text-text-2" : "text-warning"}`}
+                  className={`shrink-0 font-mono ${leg.confidence === "high" ? "text-muted" : "text-data-warn"}`}
                 >
                   needs {leg.needs} · {leg.confidence}
                 </span>
               </div>
-              <div className="text-text-3 mt-1">{leg.claim}</div>
-              <div className="text-text-3 mt-0.5 italic">{leg.reasoning}</div>
+              <div className="text-dim mt-1">{leg.claim}</div>
+              <div className="text-dim mt-0.5 italic">{leg.reasoning}</div>
             </div>
           ))}
         </div>
@@ -283,9 +287,9 @@ function ResolutionCard({ r }: { r: Resolution }) {
       {r.unresolved.length > 0 && (
         <div className="space-y-1">
           {r.unresolved.map((u) => (
-            <div key={u.claim} className="text-xs text-warning">
-              Unmatched: {u.claim}
-              <div className="text-text-3">
+            <div key={u.claim} className="text-label text-data-warn">
+              unmatched: {u.claim}
+              <div className="text-dim">
                 {u.reason} ({u.candidatesShown} candidates shown)
               </div>
             </div>
@@ -293,7 +297,7 @@ function ResolutionCard({ r }: { r: Resolution }) {
         </div>
       )}
 
-      <p className="text-xs text-text-3 leading-relaxed border-t border-border pt-2">
+      <p className="text-label text-dim leading-relaxed border-t border-border pt-2">
         A model proposed these mappings from {r.corpusMarkets.toLocaleString()} live markets;
         every ticker was checked to exist before use, and no price came from the model. Read
         them before trusting anything priced on top: a leg matched to the wrong contest is a
@@ -377,10 +381,10 @@ export default function ArbPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 bg-surface-0/85 backdrop-blur-sm border-b border-border">
+      <header className="sticky top-0 z-30 bg-bg border-b border-border">
         <div className="max-w-6xl mx-auto px-5 sm:px-7 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href="/" className="font-mono text-sm tracking-tight text-text-1 font-medium">
+            <Link href="/" className="text-title font-bold lowercase">
               quantlab
             </Link>
             <TabNav />
@@ -389,49 +393,60 @@ export default function ArbPage() {
           <div className="flex items-center gap-2 relative">
             <button
               onClick={() => setHowOpen((v) => !v)}
-              className="btn btn-ghost text-xs h-8 px-2.5 hidden sm:inline-flex"
+              className="action text-small hidden sm:inline-flex"
               aria-expanded={howOpen}
             >
-              How it works
+              how it works
             </button>
             {howOpen && (
               <div
                 role="dialog"
-                aria-label="How it works"
+                aria-label="how it works"
                 onClick={() => setHowOpen(false)}
-                className="absolute right-0 top-10 z-40 panel-overlay px-4 py-4 w-[min(26rem,92vw)] animate-fade-in"
+                className="absolute right-0 top-10 z-40 panel-pop px-4 py-4 w-[min(26rem,92vw)] animate-rise"
               >
-                <div className="micro-label mb-2">How it works</div>
-                <ol className="space-y-2.5 text-sm text-text-2">
+                <div className="text-label text-muted lowercase mb-2">how it works</div>
+                <ol className="space-y-2.5 text-small text-muted">
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">1.</span>
-                    <span>A <span className="text-text-1">parlay</span> pays $1 only if every leg lands. We read its legs from Kalshi.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">1.</span>
+                    <span>A <span className="text-fg">parlay</span> pays $1 only if every leg lands. We read its legs from Kalshi.</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">2.</span>
-                    <span>Buying the parlay plus the <span className="text-text-1">opposite side of each leg</span> pays $1 in every outcome.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">2.</span>
+                    <span>Buying the parlay plus the <span className="text-fg">opposite side of each leg</span> pays $1 in every outcome.</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">3.</span>
-                    <span>We price that hedge off <span className="text-text-1">live order books</span> and subtract Kalshi&apos;s per-leg fee.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">3.</span>
+                    <span>We price that hedge off <span className="text-fg">live order books</span> and subtract Kalshi&apos;s per-leg fee.</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="font-mono text-text-3 shrink-0 mt-0.5">4.</span>
-                    <span>Anything left under $1 is <span className="text-text-1">risk-free</span>, no matter how correlated the legs are.</span>
+                    <span className="font-mono text-dim shrink-0 mt-0.5">4.</span>
+                    <span>Anything left under $1 is <span className="text-fg">risk-free</span>, no matter how correlated the legs are.</span>
                   </li>
                 </ol>
-                <p className="mt-4 pt-3 border-t border-border text-xs text-text-3 leading-relaxed">
+                <p className="mt-4 pt-3 border-t border-border text-meta italic text-dim leading-relaxed">
                   Scanning needs no key. Only leg recovery on hand-listed parlays calls an LLM. Click anywhere to close.
                 </p>
               </div>
             )}
+            <ThemeToggle />
+            <a
+              href="https://github.com/ankitsxchdeva/quantlab"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="source on GitHub"
+              className="action-chip text-small"
+            >
+              <GithubLogo size={14} weight="bold" />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
             <button
               onClick={() => setSettingsOpen(true)}
-              aria-label="Open provider settings"
-              className="btn btn-secondary h-8 px-2.5 text-xs flex items-center gap-1.5"
+              aria-label="open provider settings"
+              className="action-chip text-small"
             >
               <CogIcon />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden sm:inline">settings</span>
             </button>
           </div>
         </div>
@@ -439,17 +454,17 @@ export default function ArbPage() {
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-7 py-6 sm:py-10 space-y-6">
         <section className="relative pt-2 pb-4 sm:pt-6 sm:pb-8">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-text-1 leading-[1.05]">
-            Multi-leg arbitrage on Kalshi.
+          <h1 className="text-lede font-bold text-fg">
+            multi-leg arbitrage on Kalshi.
           </h1>
-          <p className="mt-5 text-base sm:text-lg text-text-2 max-w-prose leading-relaxed">
+          <p className="mt-5 text-body text-muted max-w-prose">
             A parlay pays $1 only if every leg lands. Buy it, then buy the opposite side of
             each leg, and the worst case is still $1. If that costs under $1 after fees, the
             difference is risk-free regardless of how correlated the legs are.
           </p>
-          <p className="mt-2 text-sm text-text-3 max-w-prose leading-relaxed">
+          <p className="mt-2 text-small text-dim max-w-prose">
             Fees are the whole game. Kalshi charges{" "}
-            <span className="font-mono text-text-2">ceil(0.07 x C x P x (1-P))</span>, which
+            <span className="font-mono text-muted">ceil(0.07 x C x P x (1-P))</span>, which
             peaks at 50c, exactly where parlays trade. Three mid-priced legs cost about 3c per
             contract to hedge, so a 2c gap is a loss.
           </p>
@@ -458,58 +473,57 @@ export default function ArbPage() {
         {error && (
           <div
             role="alert"
-            className="px-4 py-3 flex items-start justify-between gap-3 rounded-lg border animate-fade-in"
-            style={{ borderColor: "color-mix(in oklch, var(--danger) 40%, transparent)", backgroundColor: "color-mix(in oklch, var(--danger) 10%, transparent)" }}
+            className="border-t border-b border-border py-3 flex items-start justify-between gap-3 animate-rise"
           >
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-text-1">Request failed</div>
-              <div className="text-sm text-text-2 mt-1 break-words">{error}</div>
+            <div className="min-w-0 text-small text-muted">
+              <p>request failed. check your connection and try again.</p>
+              <p className="mt-1 break-words text-dim">{error}</p>
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-xs text-text-3 hover:text-text-1 shrink-0"
-              aria-label="Dismiss error"
+              className="action text-small shrink-0"
+              aria-label="dismiss error"
             >
-              Dismiss
+              dismiss
             </button>
           </div>
         )}
 
-        <section className="panel p-4 space-y-4">
+        <section className="border-t border-border pt-4 space-y-4">
           <div>
-            <div className="micro-label mb-2">Check one parlay</div>
+            <div className="text-label text-muted lowercase mb-2">check one parlay</div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <input
                 value={ticker}
                 onChange={(e) => setTicker(e.target.value)}
                 spellCheck={false}
-                aria-label="Parlay ticker"
-                className="input flex-1 font-mono text-sm"
+                aria-label="parlay ticker"
+                className="input flex-1 font-mono text-small"
                 placeholder={TICKER_PLACEHOLDER}
               />
               <button
                 onClick={() => post({ mode: "check", ticker: ticker.trim() }, "check")}
                 disabled={busy !== null || !ticker.trim()}
-                className="btn btn-primary h-9 text-sm"
+                className="action-chip action-primary text-small"
               >
-                {busy === "check" ? "Pricing..." : "Price the hedge"}
+                {busy === "check" ? "pricing..." : "price the hedge"}
               </button>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <button
                 onClick={recoverLegs}
                 disabled={busy !== null || !ticker.trim() || !hasKey}
-                className="btn btn-secondary h-8 text-xs"
+                className="action-chip text-small"
               >
-                {busy === "resolve" ? "Recovering legs..." : "Recover legs with an LLM"}
+                {busy === "resolve" ? "recovering legs..." : "recover legs with an llm"}
               </button>
-              <span className="text-xs text-text-3">
+              <span className="text-label text-dim">
                 {hasKey
-                  ? "For hand-listed parlays that state their legs in rules text only."
-                  : "Needs an LLM key. Paste one in Settings."}
+                  ? "for hand-listed parlays that state their legs in rules text only."
+                  : "needs an llm key. paste one in settings."}
               </span>
             </div>
-            <p className="mt-2 text-xs text-text-3 leading-relaxed">
+            <p className="mt-2 text-label text-dim leading-relaxed">
               MVE parlays publish their legs as structured data and price directly. Hand-listed
               ones like <span className="font-mono">KXPROGSWEEP</span> describe them in prose,
               so recovering the legs takes a model, which proposes the mapping while the
@@ -518,27 +532,27 @@ export default function ArbPage() {
           </div>
 
           <div className="border-t border-border pt-4">
-            <div className="micro-label mb-2">Or sweep the exchange</div>
+            <div className="text-label text-muted lowercase mb-2">or sweep the exchange</div>
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={() => post({ mode: "scan", maxPages: 20 }, "scan")}
                 disabled={busy !== null}
-                className="btn btn-secondary h-9 text-sm"
+                className="action-chip text-small"
               >
-                {busy === "scan" ? "Scanning..." : "Scan 20k markets"}
+                {busy === "scan" ? "scanning..." : "scan 20k markets"}
               </button>
               <button
                 onClick={() => post({ mode: "constraints", maxPages: 12 }, "constraints")}
                 disabled={busy !== null}
-                className="btn btn-secondary h-9 text-sm"
+                className="action-chip text-small"
               >
-                {busy === "constraints" ? "Scanning..." : "Scan logical constraints"}
+                {busy === "constraints" ? "scanning..." : "scan logical constraints"}
               </button>
-              <span className="text-xs text-text-3">
-                Takes a few seconds. Reports exactly what it covered.
+              <span className="text-label text-dim">
+                takes a few seconds. reports exactly what it covered.
               </span>
             </div>
-            <p className="mt-2 text-xs text-text-3 leading-relaxed">
+            <p className="mt-2 text-label text-dim leading-relaxed">
               Constraints looks at mutually exclusive events instead of parlays. At most one leg
               can pay, so selling every leg for more than $1 is risk-free. No view on the
               subject required.
@@ -549,26 +563,26 @@ export default function ArbPage() {
         {resolved && (
           <section className="space-y-3">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-sm font-semibold text-text-1">
+              <h2 className="text-title font-bold text-fg">
                 {resolved.parlay.title || resolved.parlay.ticker}
               </h2>
-              <span className="text-xs text-text-3 font-mono">{resolved.parlay.status}</span>
+              <span className="text-label text-dim font-mono">{resolved.parlay.status}</span>
             </div>
             {resolved.parlay.rules && (
-              <p className="text-xs text-text-3 leading-relaxed panel p-3">
+              <p className="text-label text-dim leading-relaxed border-t border-border pt-3">
                 {resolved.parlay.rules}
               </p>
             )}
             <ResolutionCard r={resolved.resolution} />
             {resolved.resolution.blockedReason ? (
-              <div className="panel p-4 text-sm text-warning">
-                Not priced. {resolved.resolution.blockedReason}
+              <div className="border-t border-border pt-4 text-small text-muted">
+                not priced. {resolved.resolution.blockedReason}
               </div>
             ) : resolved.evaluation ? (
               <EvaluationCard e={resolved.evaluation} />
             ) : (
-              <div className="panel p-4 text-sm text-text-2">
-                Legs recovered, but the hedge is not priceable right now: every unsettled leg
+              <div className="border-t border-border pt-4 text-small text-muted">
+                legs recovered, but the hedge is not priceable right now: every unsettled leg
                 needs a live quote on the side you would buy.
               </div>
             )}
@@ -579,7 +593,7 @@ export default function ArbPage() {
           <section className="space-y-4">
             {constraints.takerOpportunities.length > 0 ? (
               <>
-                <h2 className="text-sm font-semibold text-accent">
+                <h2 className="text-title font-bold text-data-pos">
                   {constraints.takerOpportunities.length} risk-free, executable now
                 </h2>
                 {constraints.takerOpportunities.map((e) => (
@@ -587,11 +601,11 @@ export default function ArbPage() {
                 ))}
               </>
             ) : (
-              <div className="panel p-4">
-                <h2 className="text-sm font-semibold text-text-1">
-                  Nothing clears by crossing the spread
+              <div className="border-t border-border pt-4 space-y-2">
+                <h2 className="text-title font-bold text-fg">
+                  nothing clears by crossing the spread
                 </h2>
-                <p className="mt-2 text-xs text-text-3 leading-relaxed">
+                <p className="text-label text-dim leading-relaxed">
                   Expected. Selling every leg pays the quadratic fee once per leg, and the gross
                   edges these sets throw off run a few cents while the fees run many more. The
                   results below clear only as resting orders, which means they are not
@@ -602,7 +616,7 @@ export default function ArbPage() {
 
             {constraints.makerOpportunities.length > 0 && (
               <>
-                <h2 className="text-sm font-semibold text-warning">
+                <h2 className="text-title font-bold text-data-warn">
                   {constraints.makerOpportunities.length} clear only at mid, if every leg fills
                 </h2>
                 {constraints.makerOpportunities.map((e) => (
@@ -611,34 +625,34 @@ export default function ArbPage() {
               </>
             )}
 
-            <div className="panel p-4">
-              <div className="micro-label mb-3">Coverage</div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
+            <div className="border-t border-border pt-4 space-y-3">
+              <div className="text-label text-muted lowercase">coverage</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-label">
                 {(
                   [
-                    ["Events scanned", constraints.coverage.eventsScanned.toLocaleString()],
+                    ["events scanned", constraints.coverage.eventsScanned.toLocaleString()],
                     [
-                      "Pages",
+                      "pages",
                       `${constraints.coverage.pagesScanned}${constraints.coverage.exhausted ? " (all)" : ""}`,
                     ],
-                    ["Mutually exclusive", constraints.coverage.mutuallyExclusive.toLocaleString()],
-                    ["Priced", constraints.coverage.priced.toLocaleString()],
-                    ["Skipped: unpriceable", constraints.coverage.skippedUnpriceable.toLocaleString()],
+                    ["mutually exclusive", constraints.coverage.mutuallyExclusive.toLocaleString()],
+                    ["priced", constraints.coverage.priced.toLocaleString()],
+                    ["skipped: unpriceable", constraints.coverage.skippedUnpriceable.toLocaleString()],
                     [
-                      "Skipped: maker fee unknown",
+                      "skipped: maker fee unknown",
                       constraints.coverage.skippedMakerFeeUnknown.toLocaleString(),
                     ],
-                    ["Skipped: spread too wide", constraints.coverage.skippedWideSpread.toLocaleString()],
-                    ["Series lookups", constraints.coverage.seriesFetches.toLocaleString()],
-                    ["Elapsed", `${(constraints.coverage.elapsedMs / 1000).toFixed(1)}s`],
+                    ["skipped: spread too wide", constraints.coverage.skippedWideSpread.toLocaleString()],
+                    ["series lookups", constraints.coverage.seriesFetches.toLocaleString()],
+                    ["elapsed", `${(constraints.coverage.elapsedMs / 1000).toFixed(1)}s`],
                   ] as [string, string][]
                 ).map(([label, value]) => (
                   <div
                     key={label}
-                    className="flex justify-between gap-2 border-b border-border/50 pb-1"
+                    className="flex justify-between gap-2 border-b border-border pb-1"
                   >
-                    <span className="text-text-3">{label}</span>
-                    <span className="font-mono tabular-nums text-text-1">{value}</span>
+                    <span className="text-dim">{label}</span>
+                    <span className="font-mono tabular-nums text-fg">{value}</span>
                   </div>
                 ))}
               </div>
@@ -649,21 +663,21 @@ export default function ArbPage() {
         {check && (
           <section className="space-y-3">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-sm font-semibold text-text-1">{check.parlay.title || check.parlay.ticker}</h2>
-              <span className="text-xs text-text-3 font-mono">{check.parlay.status}</span>
+              <h2 className="text-title font-bold text-fg">{check.parlay.title || check.parlay.ticker}</h2>
+              <span className="text-label text-dim font-mono">{check.parlay.status}</span>
             </div>
             {check.evaluation ? (
               <EvaluationCard e={check.evaluation} />
             ) : (
-              <div className="panel p-4 text-sm text-text-2">
-                Not priceable right now. A parlay needs a live YES offer and a tradeable
+              <div className="border-t border-border pt-4 text-small text-muted">
+                not priceable right now. a parlay needs a live YES offer and a tradeable
                 quote on every unsettled leg; a leg that already went against it makes the
                 contract worthless rather than cheap.
                 <div className="mt-3 border-t border-border pt-3 space-y-1">
                   {check.legs.map((leg) => (
-                    <div key={leg.ticker} className="flex justify-between gap-3 text-xs">
-                      <span className="font-mono text-text-3 truncate">{leg.ticker}</span>
-                      <span className="shrink-0 font-mono text-text-2">
+                    <div key={leg.ticker} className="flex justify-between gap-3 text-label">
+                      <span className="font-mono text-dim truncate">{leg.ticker}</span>
+                      <span className="shrink-0 font-mono text-muted">
                         {leg.status}
                         {leg.result ? ` · ${leg.result}` : ""}
                       </span>
@@ -679,20 +693,20 @@ export default function ArbPage() {
           <section className="space-y-4">
             {scan.opportunities.length > 0 ? (
               <>
-                <h2 className="text-sm font-semibold text-accent">
+                <h2 className="text-title font-bold text-data-pos">
                   {scan.opportunities.length} opportunit
                   {scan.opportunities.length === 1 ? "y" : "ies"} clearing fees
                 </h2>
-                <div className="grid gap-3">
+                <div className="space-y-4">
                   {scan.opportunities.map((e) => (
                     <EvaluationCard key={e.ticker} e={e} />
                   ))}
                 </div>
               </>
             ) : (
-              <div className="panel p-4">
-                <h2 className="text-sm font-semibold text-text-1">No arbitrage found</h2>
-                <p className="mt-2 text-sm text-text-2 leading-relaxed">
+              <div className="border-t border-border pt-4 space-y-2">
+                <h2 className="text-title font-bold text-fg">no arbitrage found</h2>
+                <p className="text-small text-muted leading-relaxed">
                   Nothing in the scanned set clears fees. That is the normal result: Kalshi
                   prices its own parlays against the same legs, and the quadratic fee eats
                   any gap narrower than a few cents.
@@ -701,20 +715,20 @@ export default function ArbPage() {
             )}
 
             {scan.deadParlays.length > 0 && (
-              <div className="panel p-4">
-                <h2 className="text-sm font-semibold text-warning">
+              <div className="border-t border-border pt-4 space-y-2">
+                <h2 className="text-title font-bold text-data-warn">
                   {scan.deadParlays.length} parlay
                   {scan.deadParlays.length === 1 ? "" : "s"} with a broken leg
                 </h2>
-                <p className="mt-1 text-xs text-text-3">
+                <p className="text-label text-dim">
                   A leg already resolved against these, so they can never pay. Buying NO
                   returns $1 if the settlement is final.
                 </p>
-                <div className="mt-3 space-y-1">
+                <div className="space-y-1">
                   {scan.deadParlays.slice(0, 10).map((d) => (
-                    <div key={d.ticker} className="flex justify-between gap-3 text-xs">
-                      <span className="font-mono text-text-3 truncate">{d.ticker}</span>
-                      <span className="shrink-0 font-mono tabular-nums text-text-1">
+                    <div key={d.ticker} className="flex justify-between gap-3 text-label">
+                      <span className="font-mono text-dim truncate">{d.ticker}</span>
+                      <span className="shrink-0 font-mono tabular-nums text-fg">
                         bid {c(d.yesBidCents)} · {c(d.profitCentsPerContract)}/contract
                       </span>
                     </div>
@@ -724,17 +738,17 @@ export default function ArbPage() {
             )}
 
             {scan.nearMisses.length > 0 && (
-              <div className="panel p-4">
-                <div className="micro-label mb-3">Closest misses</div>
+              <div className="border-t border-border pt-4 space-y-3">
+                <div className="text-label text-muted lowercase">closest misses</div>
                 <div className="space-y-1">
                   {scan.nearMisses.slice(0, 10).map((e) => (
                     <button
                       key={e.ticker}
                       onClick={() => setTicker(e.ticker)}
-                      className="w-full flex justify-between gap-3 text-xs text-left hover:bg-surface-1 rounded px-1 -mx-1 py-0.5 transition-colors duration-120 ease-out"
-                      title="Load this ticker into the checker"
+                      className="w-full flex justify-between gap-3 text-label text-left text-muted hover:text-accent-hover px-1 -mx-1 py-0.5 transition-colors"
+                      title="load this ticker into the checker"
                     >
-                      <span className="font-mono text-text-3 truncate">{e.ticker}</span>
+                      <span className="font-mono truncate">{e.ticker}</span>
                       <span className="shrink-0 font-mono tabular-nums">
                         cost {c(e.costCents)} · fee {c(e.feeCentsPerContract)} ·{" "}
                         <EdgeCell edge={e.edgeCentsPerContract} />
@@ -750,26 +764,20 @@ export default function ArbPage() {
         )}
       </main>
 
-      <footer className="max-w-6xl mx-auto w-full px-5 sm:px-7 py-10 mt-8 text-xs text-text-3 border-t border-border">
+      <footer className="max-w-6xl mx-auto w-full px-5 sm:px-7 py-10 mt-8 text-label text-dim border-t border-border">
         <div className="grid sm:grid-cols-[1fr_auto] gap-y-5 gap-x-8 items-start">
           <div className="space-y-3 max-w-prose">
-            <p className="text-text-2 leading-relaxed">
+            <p className="text-muted leading-relaxed">
               Quotes are a snapshot of the order book at scan time, not a fill. Depth moves, legs go untradeable, and an edge that clears fees on paper can be gone before every leg is on. Use this to find candidates, not to size a position. Nothing here is investment advice.
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
-                Your API key never leaves your browser
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-info" aria-hidden="true" />
-                No accounts, no tracking, no upsells
-              </span>
+              <span>your api key never leaves your browser</span>
+              <span>no accounts, no tracking, no upsells</span>
             </div>
           </div>
           <div className="flex sm:flex-col gap-4 sm:gap-1 sm:items-end">
-            <span className="font-mono text-text-2">quantlab</span>
-            <span className="text-text-3">v0.1</span>
+            <span className="font-mono text-muted">quantlab</span>
+            <span>v0.1</span>
           </div>
         </div>
       </footer>

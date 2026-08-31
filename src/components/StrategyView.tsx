@@ -44,17 +44,17 @@ function tokenize(json: string): Token[] {
 }
 
 const COLORS: Record<Token["kind"], string> = {
-  key: "text-info",
-  string: "text-accent",
-  number: "text-warning",
-  bool: "text-text-2",
-  null: "text-text-2",
-  punct: "text-text-3",
+  key: "text-fg",
+  string: "text-muted",
+  number: "text-fg",
+  bool: "text-muted",
+  null: "text-muted",
+  punct: "text-dim",
 };
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={cn("transition-transform duration-180 ease-out", open ? "rotate-180" : "rotate-0")}>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={cn("text-dim", open ? "rotate-180" : "rotate-0")}>
       <polyline points="6 9 12 15 18 9" />
     </svg>
   );
@@ -79,16 +79,16 @@ export default function StrategyView({ strategy }: StrategyViewProps) {
   }
 
   return (
-    <section className="panel">
+    <section className="border-t border-border">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface-2 transition-colors duration-120 ease-out rounded-t-[10px]"
+        className="w-full flex items-center justify-between py-3 text-left"
       >
         <div className="flex items-baseline gap-3 min-w-0">
-          <h3 className="text-sm font-medium text-text-1">Compiled strategy</h3>
-          <span className="text-xs text-text-3 font-mono tabular-nums truncate">
+          <h3 className="text-title font-bold text-fg">compiled strategy</h3>
+          <span className="text-meta font-mono tabular-nums text-dim truncate">
             {strategy.indicators.length} indicator{strategy.indicators.length === 1 ? "" : "s"} · {strategy.entries.length} entry · {strategy.exits.length} exit
           </span>
         </div>
@@ -97,34 +97,26 @@ export default function StrategyView({ strategy }: StrategyViewProps) {
 
       {open && (
         <div className="border-t border-border">
-          <div role="tablist" aria-label="Strategy view tabs" className="flex items-center gap-1 px-5 pt-3 border-b border-border">
+          <div role="tablist" aria-label="strategy view tabs" className="flex items-center gap-1 px-5 pt-3 border-b border-border">
             <button
               role="tab"
               aria-selected={tab === "english"}
               onClick={() => setTab("english")}
-              className={cn(
-                "relative text-sm px-3 py-2 -mb-px transition-colors duration-120 ease-out",
-                tab === "english" ? "text-text-1" : "text-text-3 hover:text-text-2",
-              )}
+              className="tab text-title px-3 py-2"
             >
-              Plain English
-              {tab === "english" && <span className="absolute left-3 right-3 -bottom-px h-[2px] bg-accent" aria-hidden="true" />}
+              plain English
             </button>
             <button
               role="tab"
               aria-selected={tab === "json"}
               onClick={() => setTab("json")}
-              className={cn(
-                "relative text-sm px-3 py-2 -mb-px transition-colors duration-120 ease-out",
-                tab === "json" ? "text-text-1" : "text-text-3 hover:text-text-2",
-              )}
+              className="tab text-title px-3 py-2"
             >
               JSON
-              {tab === "json" && <span className="absolute left-3 right-3 -bottom-px h-[2px] bg-accent" aria-hidden="true" />}
             </button>
             {tab === "json" && (
-              <button onClick={copy} className="ml-auto btn btn-ghost text-xs h-7 px-2">
-                {copied ? "Copied" : "Copy"}
+              <button onClick={copy} className="action text-label ml-auto">
+                {copied ? "copied" : "copy"}
               </button>
             )}
           </div>
@@ -132,7 +124,7 @@ export default function StrategyView({ strategy }: StrategyViewProps) {
           {tab === "english" ? (
             <PlainEnglishStrategy strategy={strategy} />
           ) : (
-            <pre className="px-5 py-4 text-xs leading-relaxed overflow-auto max-h-[480px] font-mono">
+            <pre className="px-5 py-4 text-label leading-relaxed overflow-auto max-h-[480px] font-mono">
               <code>
                 {tokens.map((t, i) => (
                   <span key={i} className={COLORS[t.kind]}>{t.text}</span>

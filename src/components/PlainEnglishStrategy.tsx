@@ -112,7 +112,7 @@ function describeCondition(c: Condition, indicators: Indicator[]): string {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="py-4 first:pt-0 last:pb-0 border-b border-border last:border-b-0">
-      <div className="micro-label mb-2">{label}</div>
+      <div className="text-label text-muted mb-2">{label}</div>
       {children}
     </div>
   );
@@ -131,19 +131,19 @@ export default function PlainEnglishStrategy({ strategy }: PlainEnglishStrategyP
   return (
     <div className="px-5 py-4">
       {strategy.description && (
-        <p className="text-sm text-text-2 max-w-prose mb-5 leading-relaxed">{strategy.description}</p>
+        <p className="text-small text-muted max-w-[68ch] mb-5 leading-relaxed">{strategy.description}</p>
       )}
 
-      <Section label="Market">
-        <p className="text-sm text-text-1">{assetSentence}</p>
+      <Section label="market">
+        <p className="text-small text-fg">{assetSentence}</p>
       </Section>
 
       {strategy.indicators.length > 0 && (
-        <Section label="What we're tracking">
-          <ul className="text-sm text-text-1 space-y-1.5">
+        <Section label="what we're tracking">
+          <ul className="text-small text-fg space-y-1.5">
             {strategy.indicators.map((ind) => (
               <li key={ind.id} className="flex items-baseline gap-3">
-                <span className="font-mono text-text-3 text-xs shrink-0 w-24 truncate">{ind.id}</span>
+                <span className="font-mono text-label text-dim shrink-0 w-24 truncate">{ind.id}</span>
                 <span>{describeIndicator(ind)}.</span>
               </li>
             ))}
@@ -151,36 +151,36 @@ export default function PlainEnglishStrategy({ strategy }: PlainEnglishStrategyP
         </Section>
       )}
 
-      <Section label="When to buy">
-        <ul className="text-sm text-text-1 space-y-1.5">
+      <Section label="when to buy">
+        <ul className="text-small text-fg space-y-1.5">
           {strategy.entries.map((rule, i) => (
             <li key={i} className="leading-relaxed">
-              Go <span className="text-text-1 font-medium">{rule.side === "long" ? "long" : "short"}</span> when {describeCondition(rule.when, strategy.indicators)}.
+              Go <span className="text-fg font-medium">{rule.side === "long" ? "long" : "short"}</span> when {describeCondition(rule.when, strategy.indicators)}.
             </li>
           ))}
         </ul>
       </Section>
 
       {(strategy.exits.length > 0 || stop !== undefined || take !== undefined || maxBars !== undefined) && (
-        <Section label="When to sell">
-          <ul className="text-sm text-text-1 space-y-1.5">
+        <Section label="when to sell">
+          <ul className="text-small text-fg space-y-1.5">
             {strategy.exits.map((rule, i) => (
               <li key={i} className="leading-relaxed">
                 Exit when {describeCondition(rule.when, strategy.indicators)}{rule.reason ? ` (${rule.reason})` : ""}.
               </li>
             ))}
             {stop !== undefined && (
-              <li className="leading-relaxed text-text-2">
-                Or cut the position with a <span className="text-warning">{stop}% stop loss</span>.
+              <li className="leading-relaxed text-muted">
+                Or cut the position with a <span className="text-data-neg">{stop}% stop loss</span>.
               </li>
             )}
             {take !== undefined && (
-              <li className="leading-relaxed text-text-2">
-                Or take profits at <span className="text-accent">+{take}%</span>.
+              <li className="leading-relaxed text-muted">
+                Or take profits at <span className="text-data-pos">+{take}%</span>.
               </li>
             )}
             {maxBars !== undefined && (
-              <li className="leading-relaxed text-text-2">
+              <li className="leading-relaxed text-muted">
                 Or force-close after {maxBars} bars in trade.
               </li>
             )}
@@ -188,10 +188,10 @@ export default function PlainEnglishStrategy({ strategy }: PlainEnglishStrategyP
         </Section>
       )}
 
-      <Section label="Position sizing">
-        <p className="text-sm text-text-1 leading-relaxed">
+      <Section label="position sizing">
+        <p className="text-small text-fg leading-relaxed">
           Risk <span className="tabular">{strategy.risk.positionSizePct}%</span> of equity per trade.
-          {" "}Shorting is <span className={strategy.allowShort ? "text-accent" : "text-text-3"}>{strategy.allowShort ? "enabled" : "disabled"}</span>.
+          {" "}Shorting is <span className={strategy.allowShort ? "text-fg" : "text-dim"}>{strategy.allowShort ? "enabled" : "disabled"}</span>.
           {" "}Starting equity: <span className="tabular">${strategy.initialEquity.toLocaleString()}</span>.
         </p>
       </Section>
