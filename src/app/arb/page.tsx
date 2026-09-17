@@ -383,7 +383,7 @@ export default function ArbPage() {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-30 bg-bg border-b border-border">
         <div className="max-w-6xl mx-auto px-5 sm:px-7 py-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Link href="/" className="text-title font-bold lowercase">
               quantlab
             </Link>
@@ -435,7 +435,7 @@ export default function ArbPage() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="source on GitHub"
-              className="action-chip text-small"
+              className="action-chip text-small px-2 sm:px-[0.9em]"
             >
               <GithubLogo size={14} weight="bold" />
               <span className="hidden sm:inline">GitHub</span>
@@ -443,7 +443,7 @@ export default function ArbPage() {
             <button
               onClick={() => setSettingsOpen(true)}
               aria-label="open provider settings"
-              className="action-chip text-small"
+              className="action-chip text-small px-2 sm:px-[0.9em]"
             >
               <CogIcon />
               <span className="hidden sm:inline">settings</span>

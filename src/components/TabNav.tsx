@@ -19,7 +19,7 @@ export default function TabNav() {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className="tab text-title h-8 px-2.5 inline-flex items-center"
+            className="tab text-title h-8 px-1 sm:px-2.5 inline-flex items-center"
           >
             {tab.label}
           </Link>

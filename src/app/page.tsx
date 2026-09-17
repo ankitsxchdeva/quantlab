@@ -252,12 +252,12 @@ export default function Page() {
     <div className="min-h-[100dvh] flex flex-col">
       <header className="sticky top-0 z-30 bg-bg border-b border-border">
         <div className="max-w-6xl mx-auto px-5 sm:px-7 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
             <span className="text-title font-bold">quantlab</span>
             <TabNav />
           </div>
 
-          <div className="flex items-center gap-3 relative">
+          <div className="flex items-center gap-2 sm:gap-3 relative">
             <button
               onClick={() => setHowOpen((v) => !v)}
               className="action text-small hidden sm:inline-flex"
@@ -302,7 +302,7 @@ export default function Page() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="source on GitHub"
-              className="action-chip text-small h-8 px-2.5"
+              className="action-chip text-small h-8 px-2 sm:px-2.5"
             >
               <GithubLogo size={14} weight="bold" />
               <span className="hidden sm:inline">GitHub</span>
@@ -310,12 +310,15 @@ export default function Page() {
             <button
               onClick={() => setSettingsOpen(true)}
               aria-label="open provider settings"
-              className="action-chip text-small h-8 px-2.5"
+              className="action-chip text-small h-8 px-2 sm:px-2.5"
             >
               <Gear size={14} />
               <span className="hidden sm:inline">settings</span>
               {hydrated && !hasKey && (
-                <span className="badge" aria-label="API key required">key needed</span>
+                <>
+                  <span className="badge hidden sm:inline-flex" aria-label="API key required">key needed</span>
+                  <span className="sm:hidden w-1.5 h-1.5 rounded-[2px] bg-accent" aria-label="API key required" />
+                </>
               )}
             </button>
           </div>

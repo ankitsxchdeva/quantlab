@@ -64,14 +64,14 @@ export default function TradeLog({ trades }: TradeLogProps) {
             <table className="w-full">
               <thead className="sticky top-0 bg-bg z-10">
                 <tr className="border-b border-border">
-                  <th className="text-left px-3 sm:px-4 py-2 text-label text-muted font-normal">#</th>
-                  <th className="text-left px-3 sm:px-4 py-2 text-label text-muted font-normal">side</th>
-                  <th className="text-left px-3 sm:px-4 py-2 text-label text-muted font-normal">entry</th>
-                  <th className="text-right px-3 sm:px-4 py-2 text-label text-muted font-normal hidden sm:table-cell">entry px</th>
-                  <th className="text-left px-3 sm:px-4 py-2 text-label text-muted font-normal">exit</th>
-                  <th className="text-right px-3 sm:px-4 py-2 text-label text-muted font-normal hidden sm:table-cell">exit px</th>
-                  <th className="text-right px-3 sm:px-4 py-2 text-label text-muted font-normal">p&amp;l</th>
-                  <th className="text-left px-3 sm:px-4 py-2 text-label text-muted font-normal hidden md:table-cell">why</th>
+                  <th className="text-left px-2 sm:px-4 py-2 text-label text-muted font-normal hidden sm:table-cell">#</th>
+                  <th className="text-left px-2 sm:px-4 py-2 text-label text-muted font-normal">side</th>
+                  <th className="text-left px-2 sm:px-4 py-2 text-label text-muted font-normal">entry</th>
+                  <th className="text-right px-2 sm:px-4 py-2 text-label text-muted font-normal hidden sm:table-cell">entry px</th>
+                  <th className="text-left px-2 sm:px-4 py-2 text-label text-muted font-normal">exit</th>
+                  <th className="text-right px-2 sm:px-4 py-2 text-label text-muted font-normal hidden sm:table-cell">exit px</th>
+                  <th className="text-right px-2 sm:px-4 py-2 text-label text-muted font-normal">p&amp;l</th>
+                  <th className="text-left px-2 sm:px-4 py-2 text-label text-muted font-normal hidden md:table-cell">why</th>
                 </tr>
               </thead>
               <tbody className="text-small font-mono tabular-nums">
@@ -79,18 +79,18 @@ export default function TradeLog({ trades }: TradeLogProps) {
                   const pos = t.pnlPct >= 0;
                   return (
                     <tr key={i} className="border-b border-border last:border-b-0">
-                      <td className="px-3 sm:px-4 py-2 text-dim">{i + 1}</td>
-                      <td className="px-3 sm:px-4 py-2 text-muted">{t.side}</td>
-                      <td className="px-3 sm:px-4 py-2 text-fg whitespace-nowrap">{fmtDate(t.entryTime)}</td>
-                      <td className="px-3 sm:px-4 py-2 text-right text-fg hidden sm:table-cell">{fmtNum(t.entryPrice, 2)}</td>
-                      <td className="px-3 sm:px-4 py-2 text-fg whitespace-nowrap">{fmtDate(t.exitTime)}</td>
-                      <td className="px-3 sm:px-4 py-2 text-right text-fg hidden sm:table-cell">{fmtNum(t.exitPrice, 2)}</td>
-                      <td className="px-3 sm:px-4 py-2 text-right">
+                      <td className="px-2 sm:px-4 py-2 text-dim hidden sm:table-cell">{i + 1}</td>
+                      <td className="px-2 sm:px-4 py-2 text-muted">{t.side}</td>
+                      <td className="px-2 sm:px-4 py-2 text-fg whitespace-nowrap">{fmtDate(t.entryTime)}</td>
+                      <td className="px-2 sm:px-4 py-2 text-right text-fg hidden sm:table-cell">{fmtNum(t.entryPrice, 2)}</td>
+                      <td className="px-2 sm:px-4 py-2 text-fg whitespace-nowrap">{fmtDate(t.exitTime)}</td>
+                      <td className="px-2 sm:px-4 py-2 text-right text-fg hidden sm:table-cell">{fmtNum(t.exitPrice, 2)}</td>
+                      <td className="px-2 sm:px-4 py-2 text-right">
                         <span className={cn("whitespace-nowrap", pos ? "text-data-pos" : "text-data-neg")}>
                           {fmtPct(t.pnlPct)}
                         </span>
                       </td>
-                      <td className="px-3 sm:px-4 py-2 text-label text-dim hidden md:table-cell">{REASON_LABEL[t.reason]}</td>
+                      <td className="px-2 sm:px-4 py-2 text-label text-dim hidden md:table-cell">{REASON_LABEL[t.reason]}</td>
                     </tr>
                   );
                 })}
