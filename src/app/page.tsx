@@ -26,7 +26,7 @@ import { getExampleResult } from "@/lib/demo/example";
 const SETTINGS_KEY = "algotrading.llm.settings.v1";
 
 const DEFAULT_SETTINGS: LLMSettings = {
-  provider: "openai",
+  provider: "ollama",
   apiKey: "",
   model: undefined,
 };
@@ -104,7 +104,7 @@ function loadSettings(): LLMSettings {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<LLMSettings>;
-    if (parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google") {
+    if (parsed.provider !== "ollama" && parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google") {
       return DEFAULT_SETTINGS;
     }
     return {
@@ -182,7 +182,9 @@ export default function Page() {
     return () => window.removeEventListener("keydown", onKey);
   }, [howOpen]);
 
-  const hasKey = settings.apiKey.trim().length > 0;
+  // The demo provider (ollama) is keyless: the server ignores apiKey for it.
+  const needsKey = settings.provider !== "ollama";
+  const hasKey = !needsKey || settings.apiKey.trim().length > 0;
   const canRun = hydrated && hasKey && prompt.trim().length > 0 && !loading;
 
   const disabledReason = useMemo(() => {
@@ -276,7 +278,7 @@ export default function Page() {
                 <ol className="space-y-2.5 text-small text-muted">
                   <li className="flex gap-2.5">
                     <span className="font-mono text-dim shrink-0 mt-0.5">1.</span>
-                    <span><span className="text-fg">describe an idea</span> in plain English. we send it to your LLM provider with your API key.</span>
+                    <span><span className="text-fg">describe an idea</span> in plain English. the keyless demo model compiles it, or bring your own provider key.</span>
                   </li>
                   <li className="flex gap-2.5">
                     <span className="font-mono text-dim shrink-0 mt-0.5">2.</span>
