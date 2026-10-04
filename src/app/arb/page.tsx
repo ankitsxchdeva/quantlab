@@ -50,7 +50,7 @@ interface ResolveResponse {
 const SETTINGS_KEY = "algotrading.llm.settings.v1";
 
 const DEFAULT_SETTINGS: LLMSettings = {
-  provider: "openai",
+  provider: "ollama",
   apiKey: "",
   model: undefined,
 };
@@ -61,7 +61,7 @@ function loadSettings(): LLMSettings {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<LLMSettings>;
-    if (parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google") {
+    if (parsed.provider !== "ollama" && parsed.provider !== "openai" && parsed.provider !== "anthropic" && parsed.provider !== "google") {
       return DEFAULT_SETTINGS;
     }
     return {
@@ -334,7 +334,9 @@ export default function ArbPage() {
     }
   }, [settings, hydrated]);
 
-  const hasKey = settings.apiKey.trim().length > 0;
+  // The demo provider (ollama) is keyless: the server ignores apiKey for it.
+  const needsKey = settings.provider !== "ollama";
+  const hasKey = !needsKey || settings.apiKey.trim().length > 0;
 
   async function post(body: unknown, kind: "scan" | "check" | "constraints" | "resolve") {
     setBusy(kind);
