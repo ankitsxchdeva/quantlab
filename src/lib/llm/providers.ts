@@ -38,7 +38,23 @@ export function resolveModel(provider: LLMProvider, apiKey: string, model?: stri
       // Local Ollama on the home server (Mac Studio, Metal GPU). Its
       // OpenAI-compatible /v1 ignores the key, but the AI SDK requires one.
       const baseURL = process.env.OLLAMA_BASE_URL ?? "https://ollama.ankit.casa/v1";
-      const client = createOpenAI({ baseURL, apiKey: "ollama" });
+      // muse-glimmer is a reasoning model: uncapped reasoning pushes compiles
+      // past the ~60s the public proxy path allows a buffered response (the
+      // connection dies at exactly 60s with a 499). Cap effort to "low" —
+      // codegen doesn't need deep thinking.
+      const lowEffort: typeof fetch = (input, init) => {
+        if (init?.body && typeof init.body === "string") {
+          try {
+            const body = JSON.parse(init.body) as Record<string, unknown>;
+            body.think = "low";
+            init = { ...init, body: JSON.stringify(body) };
+          } catch {
+            // Not a JSON body; pass through untouched.
+          }
+        }
+        return fetch(input, init);
+      };
+      const client = createOpenAI({ baseURL, apiKey: "ollama", fetch: lowEffort });
       return client(modelId);
     }
     default: {
