@@ -70,19 +70,70 @@ interface StageTimings {
   backtestMs: number;
 }
 
-interface RunResponse {
-  strategy: Strategy;
-  result: BacktestResult;
-  requestId?: string;
-  timings?: StageTimings;
-  robustness?: RobustnessReport;
-}
-
 interface ErrorResponse {
   error: string;
   // 502/500 bodies echo the compiled strategy so users can see what the LLM
   // produced even when the data fetch or backtest failed.
   strategy?: Strategy;
+}
+
+interface AcceptedResponse {
+  id: string;
+}
+
+interface PollResponse {
+  status?: "running" | "done" | "error";
+  strategy?: Strategy;
+  result?: BacktestResult;
+  timings?: StageTimings;
+  robustness?: RobustnessReport;
+  error?: string;
+}
+
+// The server runs each backtest as a background job: POST accepts (202 + id)
+// and this side polls GET /api/run/[id]. Every request stays short, so
+// intermediate proxies (Tailscale Funnel, Vercel's function cap) never sit on
+// the 30-80s a local-model compile can take.
+const POLL_INTERVAL_MS = 2_000;
+const POLL_DEADLINE_MS = 6 * 60_000;
+
+type PollOutcome =
+  | { status: "done"; strategy: Strategy; result: BacktestResult; timings?: StageTimings; robustness?: RobustnessReport }
+  | { status: "error"; error: string; strategy?: Strategy };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function pollRun(id: string): Promise<PollOutcome> {
+  const deadline = Date.now() + POLL_DEADLINE_MS;
+  while (Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS);
+    let res: Response;
+    try {
+      res = await fetch(apiUrl(`/api/run/${id}`));
+    } catch {
+      // A dropped poll is not a failed run; keep trying until the deadline.
+      continue;
+    }
+    if (res.status === 404) {
+      // Unknown id: the job expired on the server or the server restarted.
+      throw new Error("This run expired before it finished. Please run again.");
+    }
+    const data = (await res.json().catch(() => ({}))) as PollResponse;
+    if (!res.ok) {
+      throw new Error(data.error || `Polling failed with status ${res.status}`);
+    }
+    if (data.status === "running") continue;
+    if (data.status === "done" && data.strategy && data.result) {
+      return { status: "done", strategy: data.strategy, result: data.result, timings: data.timings, robustness: data.robustness };
+    }
+    if (data.status === "error") {
+      return { status: "error", error: data.error || "The run failed.", strategy: data.strategy };
+    }
+    throw new Error("Malformed response from server");
+  }
+  throw new Error("This run took longer than 6 minutes and was stopped. Try a simpler idea, or run again.");
 }
 
 function fmtDur(ms: number): string {
@@ -151,6 +202,7 @@ export default function Page() {
 
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
@@ -216,6 +268,11 @@ export default function Page() {
     setComputeMs(null);
     setTimings(null);
     setRobustness(null);
+    setElapsed(0);
+    const startedAt = Date.now();
+    const ticker = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
     try {
       const res = await fetch(apiUrl("/api/run"), {
         method: "POST",
@@ -227,23 +284,30 @@ export default function Page() {
           model: settings.model,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as Partial<RunResponse & ErrorResponse>;
+      const data = (await res.json().catch(() => ({}))) as Partial<AcceptedResponse & ErrorResponse>;
       if (!res.ok) {
         // Error bodies may still carry the compiled strategy; keep it so the
         // user can see what the LLM produced before the pipeline failed.
         if (data.strategy) setStrategy(data.strategy);
         throw new Error(data.error || `Request failed with status ${res.status}`);
       }
-      if (!data.strategy || !data.result) {
+      if (typeof data.id !== "string" || data.id.length === 0) {
         throw new Error("Malformed response from server");
       }
-      setStrategy(data.strategy);
-      setResult(data.result);
-      setTimings(data.timings ?? null);
-      setRobustness(data.robustness ?? null);
+      const outcome = await pollRun(data.id);
+      if (outcome.status === "error") {
+        if (outcome.strategy) setStrategy(outcome.strategy);
+        throw new Error(outcome.error);
+      }
+      setStrategy(outcome.strategy);
+      setResult(outcome.result);
+      setTimings(outcome.timings ?? null);
+      setRobustness(outcome.robustness ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
+      window.clearInterval(ticker);
+      setElapsed(0);
       setLoading(false);
     }
   }
@@ -384,7 +448,7 @@ export default function Page() {
           />
         )}
 
-        <PhaseIndicator active={loading} />
+        <PhaseIndicator active={loading} elapsedSeconds={elapsed} />
 
         {error && (
           <div role="alert" className="border-t border-border pt-4 animate-rise">

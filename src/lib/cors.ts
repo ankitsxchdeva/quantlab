@@ -29,7 +29,7 @@ export function corsHeaders(req: Request): Record<string, string> {
 
   return {
     "Access-Control-Allow-Origin": normalized,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
     // Same URL yields different CORS headers per caller; without this a shared

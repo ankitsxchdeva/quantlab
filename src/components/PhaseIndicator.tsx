@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 
 interface PhaseIndicatorProps {
   active: boolean;
+  /** Seconds since the run was accepted; shown as a small mono counter while polling. */
+  elapsedSeconds?: number;
 }
 
 const PHASES = [
@@ -18,7 +20,7 @@ const PHASES = [
  * full ink, done muted) plus a thin accent bar. Indeterminate motion is
  * opacity-only; no spinners, no position motion, no invented percentages.
  */
-export default function PhaseIndicator({ active }: PhaseIndicatorProps) {
+export default function PhaseIndicator({ active, elapsedSeconds }: PhaseIndicatorProps) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
@@ -38,20 +40,25 @@ export default function PhaseIndicator({ active }: PhaseIndicatorProps) {
 
   return (
     <div className="border-t border-border pt-4 animate-rise" role="status" aria-live="polite">
-      <ol className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-small">
-        {PHASES.map((p, i) => (
-          <li
-            key={p}
-            className={cn(
-              i < phase && "text-muted",
-              i === phase && "text-fg",
-              i > phase && "text-dim",
-            )}
-          >
-            {p}
-          </li>
-        ))}
-      </ol>
+      <div className="flex items-baseline justify-between gap-4">
+        <ol className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-small">
+          {PHASES.map((p, i) => (
+            <li
+              key={p}
+              className={cn(
+                i < phase && "text-muted",
+                i === phase && "text-fg",
+                i > phase && "text-dim",
+              )}
+            >
+              {p}
+            </li>
+          ))}
+        </ol>
+        {elapsedSeconds !== undefined && (
+          <span className="text-meta text-dim font-mono tabular-nums shrink-0">{elapsedSeconds}s</span>
+        )}
+      </div>
       <div className="mt-3 h-[2px] w-full bg-border" aria-hidden="true">
         <div className="h-full w-full bg-accent animate-pulse-soft" />
       </div>
