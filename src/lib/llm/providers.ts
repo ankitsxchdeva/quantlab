@@ -8,7 +8,7 @@ export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   openai: "gpt-4o-mini",
   anthropic: "claude-sonnet-5",
   google: "gemini-2.0-flash",
-  ollama: "qwen3.8:27b",
+  ollama: "muse-glimmer:30b-q4_K_M",
 };
 
 export function resolveModel(provider: LLMProvider, apiKey: string, model?: string): LanguageModel {
