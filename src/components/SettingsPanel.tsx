@@ -30,7 +30,7 @@ const DEFAULT_MODEL_HINT: Record<LLMProvider, string> = {
   openai: "gpt-4o-mini",
   anthropic: "claude-sonnet-5",
   google: "gemini-2.0-flash",
-  ollama: "muse-glimmer:30b-q4_K_M",
+  ollama: "the local model (server-pinned)",
 };
 
 const KEY_URLS: Record<LLMProvider, string> = {
