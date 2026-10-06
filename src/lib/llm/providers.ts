@@ -35,10 +35,10 @@ export function resolveModel(provider: LLMProvider, apiKey: string, model?: stri
       return client(modelId);
     }
     case "ollama": {
-      // Local Ollama on the home server (Mac Studio, Metal GPU). Its
-      // OpenAI-compatible /v1 ignores the key, but the AI SDK requires one.
+      // Local LLM server (Mac Studio, oMLX now — Ollama before it). The
+      // OpenAI-compatible /v1 needs a bearer when the server enforces one.
       const baseURL = process.env.OLLAMA_BASE_URL ?? "https://ollama.ankit.casa/v1";
-      const client = createOpenAI({ baseURL, apiKey: "ollama" });
+      const client = createOpenAI({ baseURL, apiKey: process.env.OLLAMA_API_KEY ?? "ollama" });
       return client(modelId);
     }
     default: {
